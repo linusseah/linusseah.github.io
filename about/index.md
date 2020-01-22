@@ -1,11 +1,11 @@
 ---
 layout: page
-title: About Heidi
+title: About Linus Seah
 tags: [about, profile]
-date: 2018-03-08
+date: 2020-01-17
 comments: false
 ---
 
-<center>Aspiring data scientist | Project Manager.</center>
+<center>Aspiring data scientist | Product Manager.</center>
 
-Check out my CV at [LinkedIn](https://www.linkedin.com/in/heidi-chen/).
+Check out my CV at [LinkedIn](https://www.linkedin.com/in/linus-seah-4964ab52/).
