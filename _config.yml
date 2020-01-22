@@ -1,14 +1,14 @@
 # Site
-title:              Heidi Chen
-bio:                'Aspiring Data Scientist | Project Manager'
-description:        "because life is good"
+title:              Linus Seah 
+bio:                'Aspiring Data Scientist | Product Manager'
+description:        "because good products are built on truth"
 reading_time:       true
 words_per_minute:   200
 logo:               'assets/img/h-logo.png'
 background:         'assets/img/bg.jpg'
 tiled_bg:           true   # Set this true if you want to tile your background image, otherwise it will be covered
 locale:             en_US
-url:                https://heidicq.github.io/
+url:                https://linusseah.github.io/
 
 # Jekyll
 permalink:          /:title/
@@ -26,7 +26,7 @@ sass:
   style:            compressed
 
 # Comments
-disqus_shortname:   heidicq
+disqus_shortname:   Linus Seah 
 
 # Social
 # if you don't have any of social below, comment the line.
@@ -40,9 +40,9 @@ disqus_shortname:   heidicq
 #email:
 # twitter:            username
 # facebook:           username
-github-url:         heidicq/dsi2-projects
+github-url:         linusseah/General-DataScience-Projects-
 #stackoverflow:     123456/username   from a "http://stackoverflow.com/users/123456/username" link
-linkedin:          heidi-chen-a8010735/
+linkedin:           linus-seah-4964ab52/
 #xing:              username
 # instagram:          username
 #lastfm:            username
