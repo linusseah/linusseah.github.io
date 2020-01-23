@@ -8,6 +8,8 @@ tags: [nlp, web scraping, regression, classification]
 comments: true
 ---
 
-## Approach
+## Overview
+
+Objective: Web scraping posts from two sub-reddit forums on Reddit.com and applying natural language processing methods and classification modelling to accurately classify posts as being from either one sub-forum or another. 
 
 See code [here](https://github.com/linusseah/General-DataScience-Projects-/tree/master/project_3_reddit).
