@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Inside Out: ML & Lexical Emotion Classifier — Linus Seah</title>
+  <meta name="description" content="Capstone project: a machine learning and lexical rule-based emotion classifier for textual input, deployed as a Flask web app on Heroku.">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+  <nav>
+    <div class="container">
+      <a href="/" class="nav-name">Linus Seah</a>
+      <ul class="nav-links">
+        <li><a href="/about.html">About</a></li>
+        <li><a href="/projects.html">Projects</a></li>
+        <li><a href="/blog/" class="active">Blog</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main class="container">
+
+    <div class="post-header">
+      <div class="series">General Assembly — Data Science Immersive 11 · Capstone</div>
+      <h1>Inside Out: Machine Learning &amp; Lexical Rule-Based Emotion Classifier for Text</h1>
+      <p class="post-subtitle">A web application that analyses textual input to classify emotions at the sentence level, using a combination of ML classification and lexical rule-based libraries.</p>
+      <div class="post-meta">
+        By <a href="https://www.linkedin.com/in/linusseah/" target="_blank">Linus Seah</a> · January 2020 ·
+        Code: <a href="https://github.com/linusseah/General-DataScience-Projects-/tree/master/capstone" target="_blank">GitHub</a>
+      </div>
+    </div>
+
+    <article class="prose">
+
+      <p>"What is on your mind?... What are you thinking about?... A penny for your thoughts?" For most of us, experiencing, interpreting, understanding and reacting to our own emotional states and those around us are very much a part of our daily interactions at the workplace, at home with our family members and other social settings; <strong>reacting appropriately to different situations based on the emotional context is key to developing meaningful personal and business relationships.</strong></p>
+
+      <p>Appreciation of emotional context is often done in-person — and for good reason — we read emotions best based on tonality, body-language, facial expressions and many other verbal and non-verbal cues perceived both consciously and sub-consciously. For this reason, emotional interpretation is largely limited to localised settings.</p>
+
+      <p>But <strong>what if we could glean information on emotional responses 'en-masse'</strong> using other less conventional methods? For example, by analysing the 'tonality' of a particular writing style, or 'expressions' based on punctuation or keywords from textual input? What if we could tell how a hundred, or a thousand people are feeling at a particular point in time — in real time no less? These questions motivated my research into Natural Language Processing (NLP) and the development of a tool built on both traditional ML/NLP concepts and lexical rule-based libraries.</p>
+
+      <h2>Problem Statement</h2>
+
+      <p>It is difficult to gather emotional responses quickly, cheaply, and efficiently at scale.</p>
+
+      <h2>Proposed Solution</h2>
+
+      <p>A web-application that can process textual input to provide both a broader analysis of the emotional response to specific topics (e.g. Singapore General Elections) and a more granular analysis of sentence-level emotional responses with associated keywords and phrases.</p>
+
+      <p><em>Note: the current model is only built for text input of up to a few paragraphs long.</em></p>
+
+      <h2>Use Cases for "Emotional Listening"</h2>
+
+      <p>The following are examples of potential pain points and use cases:</p>
+
+      <h3>Pain Points</h3>
+
+      <p><strong>1. Costly and time-consuming to gather mass implicit feedback:</strong> Information on emotional response to an event (a press release, a public speech) could inform better decision-making, but obtaining implicit feedback in real-time at scale is often prohibitively expensive. While explicit feedback can be obtained from social media platforms (e.g. Facebook emoji reactions), this only captures a secondary reaction. It would be more powerful to get an implicit primary reaction from people's own textual input on public platforms.</p>
+
+      <p><strong>2. Difficult to obtain real-time information to take preventive action:</strong> Unfortunate events like mass-killings are often preceded by telling messages indicative of troubled emotions — but are usually only discovered post-mortem.</p>
+
+      <p><strong>3. Lack of nuance in basic sentiment analysis:</strong> Current sentiment analysis is usually binary (positive/negative). However, even within the category of "negative," the appropriate response varies widely: disappointment that a product feature wasn't released is very different from anger that a product is dangerous. Granular emotion classification enables more appropriate responses.</p>
+
+      <h3>Use Cases</h3>
+
+      <ol style="margin: 0 0 20px 24px; line-height: 1.75;">
+        <li>Emotional analysis as an additional data point for digital marketing</li>
+        <li>Better recommendation systems (think: Spotify playlist suggestions that match your current mood)</li>
+        <li>Real-time "emotional listening" to pre-empt bad events — dynamically scraping a live source and generating real-time emotion breakdowns</li>
+        <li>More granular sentiment analysis for policy makers</li>
+        <li>Mental health tracker: individuals can journal and track their emotional state over time</li>
+        <li>Assistive technology for disabilities: combined with speech-to-text, this could help those with impaired ability to pick up emotional nuances in daily interactions</li>
+      </ol>
+
+      <h2>1. Data Cleaning and Pre-Processing</h2>
+
+      <h3>1.1 Combining 3 Datasets</h3>
+
+      <p>Three pre-tagged datasets were combined:</p>
+
+      <ol style="margin: 0 0 20px 24px; line-height: 1.75;">
+        <li><strong>Kaggle dataset (~415,000 tweets)</strong>: tagged across 6 emotions — sadness, joy, love, anger, fear, surprise</li>
+        <li><strong>Figure Eight dataset (~40,000)</strong>: 13 emotions including neutral, enthusiasm, hate, boredom, relief</li>
+        <li><strong>Figure Eight dataset (~2,500)</strong>: 18 emotions including anticipation, aggression, contempt, disapproval, remorse</li>
+      </ol>
+
+      <div class="figure">
+        <img src="/images/allemo_chart.png" alt="Bar chart showing all emotions from 3 datasets (%)">
+        <div class="caption">Bar chart showing all emotions from 3 datasets (%)</div>
+      </div>
+
+      <h3>1.2 Problem of Imbalanced Data</h3>
+
+      <p>There was clearly a long tail of more nuanced emotion types with far fewer observations than "plain vanilla" types like joy and anger. This imbalanced dataset would impact prediction accuracy. I chose to subset only the top 8 emotions by count to form the final training dataset.</p>
+
+      <div class="figure">
+        <img src="/images/emo_short_perc.png" alt="% Breakdown of Emotion Shortlist">
+        <div class="caption">% Breakdown of Emotion Shortlist</div>
+      </div>
+
+      <div class="figure">
+        <img src="/images/emo_short.png" alt="Bar chart showing Emotion Shortlist">
+        <div class="caption">Bar chart showing Emotion Shortlist</div>
+      </div>
+
+      <p>Even after shortlisting the top 8 emotions, significant class imbalance remained. I addressed this using random upsampling within each emotion class <em>after</em> train-test-split, to prevent the same observations from appearing in both training and testing sets.</p>
+
+      <h3>1.3 Text Cleaning Function</h3>
+
+      <p>A custom cleaning function strips non-letters, converts to lowercase, removes stopwords, and lemmatises:</p>
+
+      <pre><code>from bs4 import BeautifulSoup
+import regex as re
+from nltk.corpus import stopwords
+from nltk.stem import WordNetLemmatizer
+
+lemmatizer = WordNetLemmatizer()
+
+def clean_text(raw_post):
+    # 1. Remove HTML
+    review_text = BeautifulSoup(raw_post).get_text()
+
+    # 2. Remove non-letters
+    letters_only = re.sub("[^a-zA-Z]", " ", review_text)
+
+    # 3. Convert to lower case, split into individual words
+    words = letters_only.lower().split()
+
+    # 4. Convert stop words to a set (faster lookup)
+    stops = set(stopwords.words('english'))
+
+    # 5. Remove stop words
+    meaningful_words = [w for w in words if not w in stops]
+
+    # 6. Lemmatise
+    lem_meaningful_words = [lemmatizer.lemmatize(i) for i in meaningful_words]
+
+    # 7. Join words back into one string and return
+    return(" ".join(lem_meaningful_words))</code></pre>
+
+      <p>There were 5,519 values (1.22% of observations) that turned up null after cleaning — we still had 98% of our dataset to work with.</p>
+
+      <h3>1.4 Cleaning Difficulties</h3>
+
+      <ul style="margin: 0 0 20px 24px; line-height: 1.75;">
+        <li>Selectively keeping special characters that convey useful information (e.g. emojis)</li>
+        <li>Removing or contracting words with character repetitions (e.g. "whaaaaaat" → "what")</li>
+        <li>Transforming contractions to normal forms (e.g. "can't" → "cannot")</li>
+        <li>Removing stop words while maintaining negations (e.g. "not", "no") to preserve intention</li>
+        <li>Separating concatenated words (e.g. "iloveyoutodeath")</li>
+        <li>Correcting misspellings</li>
+        <li>Stripping usernames (e.g. @XYZ)</li>
+      </ul>
+
+      <h2>2. Baseline Model</h2>
+
+      <h3>2.1 Train-Test-Split</h3>
+
+      <pre><code>from sklearn.model_selection import train_test_split
+
+X = emo_short['clean_text']
+y = emo_short['emotions_label']
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y,
+    test_size=0.25,
+    random_state=42
+)</code></pre>
+
+      <h3>2.2 Vectorising Word Features</h3>
+
+      <p>There are two main vectorisers: <strong>CountVectorizer</strong> (counts occurrences of each unique word) and <strong>TF-IDF Vectorizer</strong> (assigns a score based on how distinctive a word is across the corpus).</p>
+
+      <p>Without restricting the number of word features, the total unique vocabulary exceeded <strong>70,000 words</strong>. With ~350,000 training rows, the full sparse matrix would contain over <strong>23 billion cells</strong> — my kernel crashed attempting this. I limited to 2,000 features with a minimum document frequency of 10.</p>
+
+      <div class="figure">
+        <img src="/images/sparse_m.png" alt="Sparse matrix containing unique word features">
+        <div class="caption">Sparse matrix containing unique word features — each row is a document, each column a word</div>
+      </div>
+
+      <p><strong>Finding the most frequently used words per emotion:</strong></p>
+
+      <pre><code>joy_df = train_cvec_combined_df[train_cvec_combined_df['emotions_label']==2]
+joy_df.drop('emotions_label', axis=1, inplace=True)
+top_20_joy = joy_df.sum().sort_values(ascending=False).head(20)
+top_20_joy.plot.barh(figsize=(11,6));</code></pre>
+
+      <div class="figure">
+        <img src="/images/top20_joy.png" alt="Top 20 word features for 'Joy' by Count">
+        <div class="caption">Top 20 word features for 'Joy' by Count — note how many generic words appear</div>
+      </div>
+
+      <p>A key observation: there were many overlapping high-frequency words across the 8 emotion classes (e.g. "im", "feeling", "feel", "know", "day") — not particularly informative for distinguishing emotions. Only 36.8% of top-20 words across all classes were unique.</p>
+
+      <p>By contrast, the words with the highest model <em>coefficients</em> were much more distinctive:</p>
+
+      <div class="figure">
+        <img src="/images/joy_topcoef.png" alt="Top 10 word features for 'Joy' by LogReg Coefficient">
+        <div class="caption">Top 10 word features for 'Joy' by Logistic Regression Coefficient — far more distinctive</div>
+      </div>
+
+      <h3>2.3 Baseline Model Results</h3>
+
+      <p>Used CountVectorizer + Logistic Regression:</p>
+
+      <pre><code>lr = LogisticRegression(max_iter=400000)
+baseline_model = lr.fit(X_train_cvec, y_train)</code></pre>
+
+      <table>
+        <thead>
+          <tr><th>Metric</th><th>Score</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>K-fold CV (mean)</td><td>0.848</td></tr>
+          <tr><td>Train accuracy</td><td>0.865</td></tr>
+          <tr><td>Test accuracy</td><td>0.849</td></tr>
+        </tbody>
+      </table>
+
+      <p>The K-fold scores are consistent across 5 folds, and the train/test gap is small — the model is not overfitted. Overall, strong results.</p>
+
+      <h2>3. Tuning and Alternative Models</h2>
+
+      <h3>TF-IDF Vectorizer</h3>
+
+      <div class="figure">
+        <img src="/images/joy_tfidf.png" alt="Top 20 word features for 'Joy' by TFIDF Value">
+        <div class="caption">Top 20 word features for 'Joy' by TF-IDF Value</div>
+      </div>
+
+      <p>Surprisingly, TF-IDF's top words were similar to CountVectorizer's, and the model performed <em>slightly worse</em>:</p>
+
+      <table>
+        <thead>
+          <tr><th>Metric</th><th>Score</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Train accuracy</td><td>0.848</td></tr>
+          <tr><td>Test accuracy</td><td>0.841</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Naive Bayes (Grid Search)</h3>
+
+      <p>Used a pipeline with GridSearchCV across 4 model/vectorizer combinations and 96 parameter combinations:</p>
+
+      <pre><code>from sklearn.naive_bayes import BernoulliNB, MultinomialNB
+from sklearn.pipeline import Pipeline
+
+models1 = {
+    'TVEC + Bernoulli': Pipeline([("vec",TfidfVectorizer()),("nb",BernoulliNB())]),
+    'TVEC + Multinomial': Pipeline([("vec",TfidfVectorizer()),("mb",MultinomialNB())]),
+    'CVEC + Bernoulli': Pipeline([("vec",CountVectorizer()),("nb",BernoulliNB())]),
+    'CVEC + Multinomial': Pipeline([("vec",CountVectorizer()),("mb",MultinomialNB())])
+}</code></pre>
+
+      <div class="figure">
+        <img src="/images/gridsearch.png" alt="Top 5 Gridsearch Scores">
+        <div class="caption">Top 5 GridSearch Scores — TVEC + Bernoulli led at 0.858</div>
+      </div>
+
+      <p>The top score goes to TVEC + Bernoulli at 0.858, but the improvement over the baseline is marginal. The optimal parameters were consistently n-gram range (1,2) and max_features = 3,000 — intuitive, as larger n-gram ranges better capture context and more features provide more signal.</p>
+
+      <h3>Random Forest and Extra Trees</h3>
+
+      <table>
+        <thead>
+          <tr><th>Model</th><th>Train score</th><th>Test score</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Random Forest (10 trees)</td><td>0.947</td><td>0.808</td></tr>
+          <tr><td>Extra Trees (10 trees)</td><td>0.951</td><td>0.811</td></tr>
+        </tbody>
+      </table>
+
+      <p>Both are heavily overfitted (large train/test gap) and perform worse than the baseline. With more trees they might improve — but the computational cost is prohibitive for ~500k rows.</p>
+
+      <h3>Artificial Neural Network</h3>
+
+      <pre><code>from keras.models import Sequential
+from keras.layers import Dense
+
+nn_model = Sequential()
+nn_model.add(Dense(256, input_dim=n_input, activation='relu'))
+nn_model.add(Dense(n_output, activation='softmax'))
+nn_model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])</code></pre>
+
+      <p>Two ANN configurations were tried. Both achieved ~0.85 validation accuracy — equivalent to the baseline — and the simpler model began overfitting after 1.5 epochs. No improvement over Logistic Regression.</p>
+
+      <h2>4. Model Selection</h2>
+
+      <p>After testing six approaches — Logistic Regression (CVEC/TVEC), Naive Bayes (Multinomial/Bernoulli), Random Forest, Extra Trees, SVM (abandoned — too slow), and ANN — the <strong>baseline CountVectorizer + Logistic Regression</strong> was selected.</p>
+
+      <div class="callout">
+        <strong>Why the simplest model won:</strong> Accuracy equal to or better than most alternatives, and significantly more computationally efficient. Given that the end goal was Heroku deployment (with limited free-tier memory), computational efficiency was a hard constraint.
+      </div>
+
+      <h2>5. Lexical Rule-Based Libraries for Sentiment Analysis</h2>
+
+      <p>In addition to emotion classification at the sentence level, I wanted to <em>contextualise</em> those emotions using lexical libraries to provide valence scores and highlight key phrases associated with the classified emotion.</p>
+
+      <h3>VADER (Valence Aware Dictionary and sEntiment Reasoner)</h3>
+
+      <p>VADER is "a rule-based sentiment analysis engine incorporating grammatical and syntactical rules, including empirically derived quantifications for the impact of each rule on perceived sentiment intensity." It goes beyond bag-of-words by handling emoticons, capitalisation, punctuation, and word order.</p>
+
+      <div class="figure">
+        <img src="/images/vader_1.png" alt="Example of how Vader scores sentiment">
+        <div class="caption">Example of how VADER assigns valence scores to text inputs</div>
+      </div>
+
+      <p><strong>How VADER adds context:</strong></p>
+
+      <ol style="margin: 0 0 20px 24px; line-height: 1.75;">
+        <li><strong>Valence vs. emotion:</strong> Valence measures the intrinsic positivity/negativity of a word or phrase, independent of the specific emotion. For example, "I think you are a racist person" carries a negative valence without clearly indicating the speaker's emotion.</li>
+        <li><strong>Emotional intensity:</strong> Two sentences classified as "angry" may differ significantly in intensity — the more negative valence score indicates more intense anger.</li>
+        <li><strong>Model validation:</strong> Valence scores should correlate with classified emotions (negative valence for sadness/anger/fear). Mismatches flag potential misclassifications.</li>
+      </ol>
+
+      <h3>TextBlob</h3>
+
+      <p>TextBlob was used for noun-phrase extraction and part-of-speech (POS) tagging to identify adjectives and verbs associated with the classified emotion.</p>
+
+      <div class="figure">
+        <img src="/images/tb_tags.png" alt="Textblob part-of-speech tags">
+        <div class="caption">TextBlob part-of-speech tags — for this project I extracted JJ (adjectives) and VB (verbs)</div>
+      </div>
+
+      <h2>6. Combining Functions for Deployment</h2>
+
+      <p>The <code>emo_machine()</code> function combines the full pipeline: takes in raw text, tokenises into sentences, cleans for the ML model while keeping raw text for VADER (which works better on uncleaned text), runs classification, VADER scoring, and TextBlob extraction, and returns a sorted dataframe.</p>
+
+      <pre><code>def emo_machine(text_string_input):
+
+    emo_summary = pd.DataFrame()
+    vader_scores = []
+    bnp = []
+    b_pos_tags = []
+    pos_subset = ['JJ']  # adjectives only
+
+    # Load pickled model artifacts
+    pickle_in = open("lr_baseline_model","rb")
+    lr_baseline_model = pickle.load(pickle_in)
+    pickle_in = open("cvec","rb")
+    cvec = pickle.load(pickle_in)
+    pickle_in = open("clean_text","rb")
+    clean_text = pickle.load(pickle_in)
+
+    # Tokenise input into sentences
+    text_input_sent = nltk.tokenize.sent_tokenize(text_string_input)
+
+    # Clean each sentence for ML model
+    clean_text_input_sent = [clean_text(i) for i in text_input_sent]
+
+    # Vectorise and predict emotions
+    X_input_cvec = cvec.transform(clean_text_input_sent).todense()
+    predictions = lr_baseline_model.predict(X_input_cvec)
+
+    # VADER scores on RAW text (not cleaned)
+    for sent in text_input_sent:
+        vader_scores.append(vader.polarity_scores(sent)['compound'])
+
+    # TextBlob noun-phrases and POS tags on cleaned text
+    for sent in clean_text_input_sent:
+        blob = TextBlob(sent)
+        bnp.append(blob.noun_phrases)
+        sent_pos_tags = [word for word, tag in blob.pos_tags if tag in pos_subset]
+        b_pos_tags.append(sent_pos_tags)
+
+    emo_summary['emotions'] = predictions
+    emo_summary['sentences'] = text_input_sent
+    emo_summary['vader_scores'] = vader_scores
+    emo_summary['blob_phrases'] = bnp
+    emo_summary['blob_tags'] = b_pos_tags
+
+    return emo_summary.sort_values(by=['vader_scores'], ascending=False)</code></pre>
+
+      <div class="figure">
+        <img src="/images/combined_func.png" alt="Final output from combined function in Jupyter Notebook">
+        <div class="caption">Final output from the combined emo_machine() function in Jupyter Notebook</div>
+      </div>
+
+      <h2>7. Flask Deployment</h2>
+
+      <p>The function was wrapped in a Flask application with two routes: a home page for text input and a results page that generates the emotion breakdown.</p>
+
+      <pre><code>app = Flask(__name__)
+
+@app.route('/')
+def index():
+    form = ReviewForm(request.form)
+    return render_template('reviewform.html', form=form)
+
+@app.route('/results', methods=['POST'])
+def results():
+    form = ReviewForm(request.form)
+    if request.method == 'POST' and form.validate():
+        review = request.form['moviereview']
+        emotions = emo_machine(review)[0]
+        return render_template('results.html',
+                            content=review,
+                            tables=[emotions.to_html()],
+                            titles=['emotional breakdown'],
+                            score=emo_machine(review)[1])
+    return render_template('reviewform.html', form=form)</code></pre>
+
+      <h2>8. Heroku Deployment</h2>
+
+      <div class="figure">
+        <img src="/images/website.png" alt="Deployed application on Heroku">
+        <div class="caption">The deployed Inside Out web application on Heroku</div>
+      </div>
+
+      <p><em>Note: The Heroku free tier has since been discontinued — the live link is no longer active. The code is available on GitHub.</em></p>
+
+      <h2>Post-Mortem: Improvements and Reflections</h2>
+
+      <h3>Model Improvements</h3>
+      <ul style="margin: 0 0 20px 24px; line-height: 1.75;">
+        <li>More rigorous class balancing in the dataset</li>
+        <li>Long Short-Term Memory (LSTM) / Recurrent Neural Networks for better sequential context</li>
+        <li>Gensim and spaCy for aspect mining and named entity recognition</li>
+        <li>Manually curate and extend VADER's lexical library with local (Singaporean) lexicon</li>
+      </ul>
+
+      <h3>UI/UX Improvements</h3>
+      <ul style="margin: 0 0 20px 24px; line-height: 1.75;">
+        <li>Interactive visualisations — clickable graph elements, sentence highlighting linked to emotions</li>
+      </ul>
+
+      <h3>Deployment Improvements</h3>
+      <ul style="margin: 0 0 20px 24px; line-height: 1.75;">
+        <li>Link to a database with a feedback button to continue collecting classification accuracy data</li>
+        <li>Dynamic scraping from a chosen source (e.g. a Twitter feed) to track emotions over time</li>
+      </ul>
+
+      <h3>Other Reflections</h3>
+
+      <div class="insight-box">
+        <div class="label">Honest Limitations</div>
+        <ul style="margin: 0 0 0 20px; line-height: 1.75;">
+          <li>Text as a single reference point for emotion loses verbal intonation, facial expressions, etc.</li>
+          <li>A single sentence can contain multiple emotional states — how many should be classified?</li>
+          <li>Sarcasm and passive-aggressiveness are extremely difficult to detect reliably.</li>
+          <li>Pejoratives (neutral-sounding statements that mask negativity: "his idea was <em>interesting</em>") are hard to catch.</li>
+          <li>Slang is localised and dynamic — models trained on American social media won't generalise to Singaporean colloquialisms. The lexicon needs continuous updates.</li>
+          <li>Lexical methods are context-specific — social media vs. formal prose would require different training data.</li>
+        </ul>
+      </div>
+
+      <h2>Resources</h2>
+
+      <ul style="margin: 0 0 20px 24px; line-height: 1.75;">
+        <li><a href="https://textblob.readthedocs.io/en/dev/quickstart.html#part-of-speech-tagging" target="_blank">TextBlob Documentation</a></li>
+        <li><a href="https://spacy.io/api/annotation#pos-tagging" target="_blank">spaCy POS Tagging</a></li>
+        <li><a href="https://www.machinelearningplus.com/nlp/topic-modeling-gensim-python/" target="_blank">Gensim Topic Modelling</a></li>
+        <li><a href="https://www.bogotobogo.com/python/Flask/Python_Flask_Embedding_Machine_Learning_3.php" target="_blank">Flask + ML Deployment</a></li>
+        <li><a href="https://towardsdatascience.com/designing-a-machine-learning-model-and-deploying-it-using-flask-on-heroku-9558ce6bde7b" target="_blank">Heroku Deployment Guide</a></li>
+        <li><a href="https://github.com/cjhutto/vaderSentiment#about-the-scoring" target="_blank">VADER Sentiment GitHub</a></li>
+      </ul>
+
+      <div class="post-footer">
+        <p><strong>About the author:</strong> I'm Linus Seah — MBA student at Kellogg (Northwestern), aspiring Solutions Architect, based in San Francisco. This was my capstone project for General Assembly's Data Science Immersive (Oct 2019 – Jan 2020).</p>
+        <p>
+          <a href="https://www.linkedin.com/in/linusseah/" target="_blank">LinkedIn</a> ·
+          <a href="https://github.com/linusseah" target="_blank">GitHub</a> ·
+          <a href="https://github.com/linusseah/General-DataScience-Projects-/tree/master/capstone" target="_blank">Project Code</a>
+        </p>
+      </div>
+
+    </article>
+
+  </main>
+
+  <footer>
+    <div class="container">
+      Linus Seah · 2026
+    </div>
+  </footer>
+
+</body>
+</html>

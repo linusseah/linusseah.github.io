@@ -1,0 +1,115 @@
+<svg viewBox="0 0 1000 700" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .box-title { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; font-weight: 600; fill: white; text-anchor: middle; }
+      .box-sublabel { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 10px; fill: white; text-anchor: middle; }
+      .tool-label { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 11px; fill: #475569; text-anchor: middle; }
+      .diagram-title { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 20px; font-weight: 700; fill: #1e293b; }
+      .description { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 12px; fill: #64748b; text-anchor: middle; }
+      .arrow { stroke: #94a3b8; stroke-width: 2; fill: none; marker-end: url(#arrowhead); }
+      .dotted-arrow { stroke: #cbd5e1; stroke-width: 2; fill: none; stroke-dasharray: 5,5; marker-end: url(#arrowhead-dotted); }
+      .input-label { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 11px; fill: #64748b; }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#94a3b8" />
+    </marker>
+    <marker id="arrowhead-dotted" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#cbd5e1" />
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1000" height="700" fill="white"/>
+
+  <!-- Title -->
+  <text x="500" y="30" class="diagram-title">v2.0: The Agentic Pipeline</text>
+
+  <!-- Input feeds at top -->
+  <!-- system_prompt.txt -->
+  <rect x="150" y="60" width="120" height="50" rx="6" fill="#e2e8f0" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="210" y="85" class="tool-label" font-weight="600">system_prompt</text>
+  <text x="210" y="98" class="tool-label">.txt</text>
+
+  <!-- Arrow down -->
+  <line x1="210" y1="110" x2="210" y2="150" class="arrow"/>
+
+  <!-- user_profile.yaml -->
+  <rect x="730" y="60" width="120" height="50" rx="6" fill="#e2e8f0" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="790" y="85" class="tool-label" font-weight="600">user_profile</text>
+  <text x="790" y="98" class="tool-label">.yaml</text>
+
+  <!-- Arrow down -->
+  <line x1="790" y1="110" x2="790" y2="150" class="arrow"/>
+
+  <!-- Central Agent box (large) -->
+  <rect x="200" y="150" width="600" height="280" rx="10" fill="#6366f1" stroke="#e0e7ff" stroke-width="2"/>
+
+  <!-- Agent title -->
+  <text x="500" y="185" class="box-title" font-size="18">Agent Orchestrator</text>
+  <text x="500" y="205" class="box-sublabel" font-size="12">Claude Sonnet via Agent SDK</text>
+
+  <!-- Toolbelt section header -->
+  <text x="500" y="245" class="box-title" font-size="12">Available Tools:</text>
+
+  <!-- Tools in a grid -->
+  <!-- Row 1 -->
+  <g>
+    <!-- fetch_rss.py -->
+    <rect x="230" y="270" width="110" height="60" rx="6" fill="#ffffff" fill-opacity="0.15" stroke="#ffffff" stroke-width="1" stroke-opacity="0.3"/>
+    <text x="285" y="293" class="tool-label" font-weight="600" fill="white">fetch_rss.py</text>
+    <text x="285" y="308" class="tool-label" fill="white" font-size="9">Fetch articles</text>
+
+    <!-- fetch_imap.py -->
+    <rect x="365" y="270" width="110" height="60" rx="6" fill="#ffffff" fill-opacity="0.15" stroke="#ffffff" stroke-width="1" stroke-opacity="0.3"/>
+    <text x="420" y="293" class="tool-label" font-weight="600" fill="white">fetch_imap.py</text>
+    <text x="420" y="308" class="tool-label" fill="white" font-size="9">Fetch emails</text>
+
+    <!-- search_web.py -->
+    <rect x="500" y="270" width="110" height="60" rx="6" fill="#ffffff" fill-opacity="0.15" stroke="#ffffff" stroke-width="1" stroke-opacity="0.3"/>
+    <text x="555" y="293" class="tool-label" font-weight="600" fill="white">search_web.py</text>
+    <text x="555" y="308" class="tool-label" fill="white" font-size="9">Search (Exa)</text>
+
+    <!-- send_email.py -->
+    <rect x="635" y="270" width="110" height="60" rx="6" fill="#ffffff" fill-opacity="0.15" stroke="#ffffff" stroke-width="1" stroke-opacity="0.3"/>
+    <text x="690" y="293" class="tool-label" font-weight="600" fill="white">send_email.py</text>
+    <text x="690" y="308" class="tool-label" fill="white" font-size="9">Send email</text>
+  </g>
+
+  <!-- Row 2 -->
+  <g>
+    <!-- write_log.py -->
+    <rect x="298" y="355" width="110" height="60" rx="6" fill="#ffffff" fill-opacity="0.15" stroke="#ffffff" stroke-width="1" stroke-opacity="0.3"/>
+    <text x="353" y="378" class="tool-label" font-weight="600" fill="white">write_log.py</text>
+    <text x="353" y="393" class="tool-label" fill="white" font-size="9">Log events</text>
+  </g>
+
+  <!-- Main flow arrow down -->
+  <line x1="500" y1="430" x2="500" y2="470" class="arrow"/>
+
+  <!-- Output box -->
+  <rect x="350" y="470" width="300" height="70" rx="8" fill="#10b981" stroke="#a7f3d0" stroke-width="2"/>
+  <text x="500" y="500" class="box-title">Curated Email Digest</text>
+  <text x="500" y="520" class="box-sublabel">Generated by Agent Decision-Making</text>
+
+  <!-- Fallback Pipeline (dotted line alternative) -->
+  <g>
+    <!-- Dotted line from Agent to Fallback -->
+    <path d="M 200 290 Q 80 290 80 570" class="dotted-arrow"/>
+
+    <!-- Fallback box -->
+    <rect x="20" y="550" width="120" height="60" rx="8" fill="#fca5a5" stroke="#fca5a5" stroke-width="1" fill-opacity="0.1"/>
+    <text x="80" y="575" class="tool-label" font-weight="600" fill="#dc2626">Fallback Pipeline</text>
+    <text x="80" y="590" class="tool-label" fill="#991b1b">(fallback.py)</text>
+
+    <!-- Dotted line from Fallback up -->
+    <line x1="140" y1="580" x2="350" y2="505" class="dotted-arrow"/>
+
+    <!-- Fallback label -->
+    <text x="190" y="540" class="tool-label" fill="#991b1b" font-size="10">if agent fails</text>
+  </g>
+
+  <!-- Description at bottom -->
+  <text x="500" y="650" class="description" font-weight="600">LLM role: Orchestrator. Makes its own decisions about what to fetch, filter, and include.</text>
+  <rect x="150" y="665" width="700" height="20" rx="4" fill="f0f4f8" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="500" y="680" class="description" font-size="11">The agent autonomously decides strategy, calls tools, handles errors, and adapts based on outcomes.</text>
+</svg>

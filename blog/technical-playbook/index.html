@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Technical Playbook — Linus Seah</title>
+  <meta name="description" content="Claude Agent SDK, Exa Search, free vs. paid models, every bug I hit, and the architectural decisions that made it work.">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+  <nav>
+    <div class="container">
+      <a href="/" class="nav-name">Linus Seah</a>
+      <ul class="nav-links">
+        <li><a href="/about.html">About</a></li>
+        <li><a href="/projects.html">Projects</a></li>
+        <li><a href="/blog/" class="active">Blog</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main class="container">
+
+    <div class="post-header">
+      <div class="series">Applied AI Thinking for Operators · Part 2 of 2</div>
+      <h1>The Technical Playbook: Building a Personal AI Digest from Scratch</h1>
+      <p class="post-subtitle">Claude Agent SDK, Exa Search, free vs. paid models, every bug I hit, and the architectural decisions that made it work. Full code included.</p>
+      <div class="post-meta">
+        By <a href="https://www.linkedin.com/in/linusseah/" target="_blank">Linus Seah</a> · February 2026 · 10 min read<br>
+        Code: <a href="https://github.com/sumoseah/daily-digest" target="_blank">v1/v1.5</a> · <a href="https://github.com/sumoseah/daily-digest-v2" target="_blank">v2</a><br>
+        <em>This is Part 2. Read <a href="/blog/what-agent-means/">Part 1: What "Agent" Actually Means</a> for the conceptual framework.</em>
+      </div>
+    </div>
+
+    <article class="prose">
+
+      <p>In <a href="/blog/what-agent-means/">Part 1</a>, I explored what "agency" actually means by building three versions of a personal daily digest — each with a different level of autonomy. This post is the technical companion: how I built it, what tools I used, every bug I hit, and the trade-offs I navigated along the way.</p>
+
+      <p>If you want to build something similar — or if you're evaluating whether agentic architectures are worth the complexity for your own projects — this is the honest playbook.</p>
+
+      <h2>The Stack: What I Used and Why</h2>
+
+      <p>Here's how the tech stack evolved across three versions. The progression tells a story about the trade-offs between cost, quality, and complexity:</p>
+
+      <table>
+        <tr>
+          <th>Component</th>
+          <th>v1.0</th>
+          <th>v1.5</th>
+          <th>v2.0</th>
+        </tr>
+        <tr>
+          <td><strong>Orchestration</strong></td>
+          <td>Hand-coded pipeline</td>
+          <td>Hand-coded + curation layer</td>
+          <td><a href="https://docs.anthropic.com/en/docs/agents-and-tools/agent-sdk" target="_blank">Claude Agent SDK</a></td>
+        </tr>
+        <tr>
+          <td><strong>LLM</strong></td>
+          <td><a href="https://openrouter.ai/" target="_blank">OpenRouter</a> free tier</td>
+          <td><a href="https://docs.anthropic.com/en/docs/about-claude/models" target="_blank">Claude Haiku</a> (direct)</td>
+          <td>Claude Sonnet (agent) + Haiku (fallback)</td>
+        </tr>
+        <tr>
+          <td><strong>RSS</strong></td>
+          <td><code>feedparser</code></td>
+          <td><code>feedparser</code></td>
+          <td><code>tools/fetch_rss.py</code></td>
+        </tr>
+        <tr>
+          <td><strong>Email fetch</strong></td>
+          <td><code>imaplib</code></td>
+          <td><code>imaplib</code></td>
+          <td><code>tools/fetch_imap.py</code></td>
+        </tr>
+        <tr>
+          <td><strong>Web search</strong></td>
+          <td>None</td>
+          <td>DuckDuckGo scraping (broken in CI)</td>
+          <td><a href="https://exa.ai/" target="_blank">Exa Search API</a> (neural)</td>
+        </tr>
+        <tr>
+          <td><strong>Email send</strong></td>
+          <td><a href="https://resend.com/" target="_blank">Resend</a></td>
+          <td>Resend</td>
+          <td>Resend</td>
+        </tr>
+        <tr>
+          <td><strong>Scheduling</strong></td>
+          <td><a href="https://docs.github.com/en/actions" target="_blank">GitHub Actions</a> cron</td>
+          <td>GitHub Actions cron</td>
+          <td>GitHub Actions cron</td>
+        </tr>
+        <tr>
+          <td><strong>Fallback</strong></td>
+          <td>None</td>
+          <td>None</td>
+          <td><code>fallback.py</code> (auto-triggered)</td>
+        </tr>
+        <tr>
+          <td><strong>Cost/day</strong></td>
+          <td>$0</td>
+          <td>~$0.018</td>
+          <td>~$0.03–0.05</td>
+        </tr>
+      </table>
+
+      <p>A few decisions deserve explanation.</p>
+
+      <h2>Free vs. Paid Models: The $0.018/Day That Changed Everything</h2>
+
+      <p>v1 used OpenRouter's free tier to access open-source models like Llama 3.3 70B, DeepSeek R1, and Gemma 3. Free is appealing. But in practice, the free tier was a source of constant friction: rate limits kicked in unpredictably mid-pipeline, models went offline for maintenance, and quality was inconsistent between model families.</p>
+
+      <div class="figure">
+        <img src="/images/free_models_comparison.png" alt="Free models comparison showing 429 rate limit errors across all sections">
+        <div class="caption">A bad day on the free tier: every single section hit OpenRouter's 429 rate limit. The entire digest was empty. This happened unpredictably and was the final straw that pushed me to paid APIs.</div>
+      </div>
+
+      <p>Switching to <a href="https://docs.anthropic.com/en/docs/about-claude/models" target="_blank">Anthropic's API</a> directly with Claude Haiku cost about $0.018/day — but the difference was night and day. All the links actually worked, the summaries were coherent and properly structured, and inference was fast and consistent. On $25 in Anthropic credits, estimated runway is roughly 3.8 years. For a personal project, that's effectively free.</p>
+
+      <div class="callout">
+        <strong>Advice I wish I'd taken earlier</strong> (and which echoes what <a href="https://www.gatsbyjs.com/blog/author/sam-bhagwat" target="_blank">Sam Bhagwat</a> recommends): start with a hosted provider like Anthropic, OpenAI, or Google Gemini. Even if you think you'll need open-source eventually, prototype with cloud APIs first, or you'll be debugging infrastructure issues instead of iterating on your actual product. Once you get something working, you can optimize cost later.
+      </div>
+
+      <div class="cost-highlight">
+        <div class="amount">~$6.50/year</div>
+        <div class="context">Total cost of Claude Haiku for daily digest runs. On $25 credit, that's ~3.8 years of runway.</div>
+      </div>
+
+      <h2>The Search API Landscape: Why Exa Won</h2>
+
+      <p>Web search was one of the trickiest components. I needed it for two things: filling gaps when RSS sources failed, and finding coverage of stories that weren't in my usual sources.</p>
+
+      <p>My first attempt used DuckDuckGo HTML scraping — which worked perfectly on my laptop and completely broke in <a href="https://docs.github.com/en/actions" target="_blank">GitHub Actions</a>. The reason: GitHub Actions IP ranges are well-known bot traffic sources, and DuckDuckGo (reasonably) blocks them with 403 errors. Lesson learned: never rely on HTML scraping for anything that runs in CI.</p>
+
+      <p>I looked at <a href="https://brave.com/search/api/" target="_blank">Brave Search API</a> next — but discovered they'd recently discontinued their free tier. Current pricing starts at $3 per 1,000 queries with no free option.</p>
+
+      <p>That left <a href="https://exa.ai/" target="_blank">Exa</a>, which turned out to be the best option by a wide margin. Exa offers 1,000 free neural search queries per month (more than enough for 3 searches/day), returns content summaries alongside results (not just titles and URLs), and uses semantic search rather than keyword matching. For finding conceptually relevant AI news, semantic search is noticeably better.</p>
+
+      <p>Here's the core search implementation (<a href="https://github.com/sumoseah/daily-digest-v2/blob/main/tools/search_web.py" target="_blank">full source</a>):</p>
+
+<pre><code>def search_exa(query: str, limit: int = 5) -> list[dict]:
+    resp = requests.post(
+        "https://api.exa.ai/search",
+        headers={"x-api-key": api_key, "Content-Type": "application/json"},
+        json={
+            "query": query,
+            "numResults": limit,
+            "useAutoprompt": True,   # Exa rewrites your query for neural search
+            "type": "neural",        # semantic search, not keyword
+            "contents": {"summary": {"query": query}},  # get snippets back
+        },
+        timeout=15,
+    )</code></pre>
+      <div class="code-source"><a href="https://github.com/sumoseah/daily-digest-v2/blob/main/tools/search_web.py" target="_blank">View full source on GitHub →</a></div>
+
+      <h2>The v2 Agent Architecture: System Prompt as the Brain</h2>
+
+      <p>The most interesting architectural decision in v2 is that the agent's intelligence lives in a text file — <a href="https://github.com/sumoseah/daily-digest-v2/blob/main/config/system_prompt.txt" target="_blank"><code>config/system_prompt.txt</code></a> — not in Python code. The system prompt tells the agent what tools it has and how to call them, the editorial standards to maintain, and how to handle failures. The Python code (<a href="https://github.com/sumoseah/daily-digest-v2/blob/main/agent.py" target="_blank"><code>agent.py</code></a>) is just plumbing that launches the agent and catches crashes.</p>
+
+      <div class="figure">
+        <img src="/images/v1_architecture.svg" alt="v1.0 architecture diagram — simple linear pipeline">
+        <div class="caption">v1.0: A simple linear pipeline. The LLM is called at one fixed point to summarize. Every step is hardcoded in Python.</div>
+      </div>
+
+      <div class="figure">
+        <img src="/images/v1_5_architecture.svg" alt="v1.5 architecture diagram — pipeline with curation layer">
+        <div class="caption">v1.5: Same pipeline structure, but with a curation layer and user profile config. The LLM does more work, but still at pre-determined points.</div>
+      </div>
+
+      <div class="figure">
+        <img src="/images/v2_architecture.svg" alt="v2.0 architecture diagram — agent orchestrator with tool access">
+        <div class="caption">v2.0: Fundamentally different. The agent decides which tools to call, in what order. The system prompt and user profile are its "brain." A fallback pipeline catches agent failures.</div>
+      </div>
+
+      <p>This separation means you can improve the digest quality by editing a text file, not rewriting code. That's a meaningful shift in how you maintain an LLM application. When I wanted the agent to stop including generic Product Hunt listings, I added one line to the system prompt. When I wanted it to be more opinionated in its editorial intro, I tweaked the voice description. No code changes, no redeployment (the system prompt is read at runtime).</p>
+
+      <p>The other key config is <a href="https://github.com/sumoseah/daily-digest-v2/blob/main/config/user_profile.yaml" target="_blank"><code>config/user_profile.yaml</code></a>:</p>
+
+<pre><code>interests:
+  high_priority:
+    - AI agents and agentic systems
+    - LLM application architecture and best practices
+    - AI research breakthroughs and new model releases
+  medium_priority:
+    - venture capital and startup funding rounds
+    - product management practices
+  low_priority:
+    - general tech news (only if significant)
+    - cheap/free SF activities
+
+content_rules:
+  max_digest_items: 20
+  min_relevance_score: 0.6
+  prefer_themes_over_sources: true</code></pre>
+      <div class="code-source"><a href="https://github.com/sumoseah/daily-digest-v2/blob/main/config/user_profile.yaml" target="_blank">View full config on GitHub →</a></div>
+
+      <h2>The Fallback Pattern: Why Every Agent Needs a Dumb Backup</h2>
+
+      <p>This might be the most important architectural decision in the entire project, and it's the one I'd recommend to anyone building agentic systems: <strong>build the deterministic fallback first</strong>.</p>
+
+      <p><a href="https://github.com/sumoseah/daily-digest-v2/blob/main/fallback.py" target="_blank"><code>fallback.py</code></a> is a complete, standalone pipeline that produces an acceptable digest without any agent involvement. It uses Claude Haiku directly (no Agent SDK), follows the same source list, and outputs a properly formatted HTML email. If the agent crashes, hangs, or produces garbage, the fallback runs automatically.</p>
+
+      <p>The <a href="https://github.com/sumoseah/daily-digest-v2/blob/main/.github/workflows/digest.yml" target="_blank">GitHub Actions workflow</a> implements this cleanly:</p>
+
+<pre><code># .github/workflows/digest.yml
+- name: Run agent
+  id: agent
+  run: python agent.py
+  continue-on-error: true   # don't fail the workflow if agent fails
+
+- name: Run fallback if agent failed
+  if: steps.agent.outcome == 'failure'
+  run: python fallback.py</code></pre>
+      <div class="code-source"><a href="https://github.com/sumoseah/daily-digest-v2/blob/main/.github/workflows/digest.yml" target="_blank">View workflow on GitHub →</a></div>
+
+      <p>Building the fallback first had an unexpected benefit: it gave me confidence to experiment aggressively with the agent layer. I could try wild system prompt changes, swap models, add new tools — knowing that if anything broke, tomorrow's email would still arrive.</p>
+
+      <h2>Every Bug That Bit Me (The Honest Account)</h2>
+
+      <p>This section is the most valuable for anyone trying to replicate this. These are real problems I encountered, and some of them were surprisingly subtle.</p>
+
+      <h3 class="bug-header">Bug 1: Python's email module and lazy loading</h3>
+
+      <p><strong>Symptom:</strong> <code>AttributeError: module 'email' has no attribute 'message'</code> when parsing Gmail messages.</p>
+
+      <p>Python's <code>email</code> package uses lazy loading. When you write <code>import email</code>, it makes the package available, but not all its submodules. If you use a type annotation like <code>email.message.Message</code>, Python tries to resolve the submodule at function definition time — and fails because it hasn't been explicitly imported.</p>
+
+<pre><code># This breaks:
+import email
+def _extract_body(msg: email.message.Message) -> str:  # AttributeError!
+    ...
+
+# This works:
+import email
+import email.message  # explicit submodule import
+def _extract_body(msg: email.message.Message) -> str:
+    ...</code></pre>
+      <div class="code-source"><a href="https://github.com/sumoseah/daily-digest-v2/blob/main/tools/fetch_imap.py" target="_blank">View fix in context on GitHub →</a></div>
+
+      <h3 class="bug-header">Bug 2: TechCrunch's broken RSS feed</h3>
+
+      <p><strong>Symptom:</strong> <code>Failed to parse feed: not well-formed (invalid token)</code> for the TechCrunch venture feed.</p>
+
+      <p>The topic-specific TechCrunch feed at <code>/tag/venture/feed/</code> returns malformed XML. It's not a feedparser bug — the feed itself is broken. The fix was simple: use the main feed (<code>techcrunch.com/feed/</code>) instead and let the curation layer filter for relevant stories. Not all RSS feeds are valid XML, even from major publishers. Always test your feed URLs with <code>curl</code> before committing them.</p>
+
+      <h3 class="bug-header">Bug 3: DuckDuckGo blocks GitHub Actions IPs</h3>
+
+      <p><strong>Symptom:</strong> Web search returned empty results in production but worked locally.</p>
+
+      <p>DuckDuckGo detects and blocks traffic from GitHub Actions IP ranges. This failed silently — no error, just empty results. Replaced with <a href="https://exa.ai/" target="_blank">Exa Search API</a> which uses proper API authentication and works everywhere. The broader lesson: never rely on HTML scraping for anything that runs in CI/CD.</p>
+
+      <h3 class="bug-header">Bug 4: Agent SDK hangs on machines without AVX CPU support</h3>
+
+      <p><strong>Symptom:</strong> Running <code>agent.py</code> locally hung indefinitely on the BashTool pre-flight check.</p>
+
+      <p>The <a href="https://docs.anthropic.com/en/docs/agents-and-tools/agent-sdk" target="_blank">Claude Agent SDK</a>'s BashTool runs a security check using a bundled binary that requires AVX CPU instructions. On machines without AVX, it hangs instead of failing with a clear error. Workaround: use <code>fallback.py --dry-run</code> for local previews. In GitHub Actions (Linux x64 with full AVX support), the agent runs fine.</p>
+
+      <div class="warning-box">
+        <div class="label">Watch out: Unintended API spending</div>
+        <p style="margin:0;">When I told the agent to start using my Anthropic API credits, it switched to a paid Claude model <em>within OpenRouter</em> rather than using the Anthropic API directly. This incurred charges on my OpenRouter account — which I hadn't attached a payment method to, resulting in a negative balance. The amount was negligible this time, but it could have been significant with higher usage. <strong>The lesson:</strong> be explicit about which API endpoint and billing account to use, and set spending limits as guardrails. Agents will take the most direct path to fulfilling your request, which may not be the path you intended.</p>
+      </div>
+
+      <h2>Content Sources: What Worked and What Didn't</h2>
+
+      <p><strong>Simon Willison's blog</strong> was the easiest source — clean RSS feed, consistent format, high signal-to-noise ratio. RSS is genuinely the best protocol for automated content consumption and I wish more publishers maintained theirs.</p>
+
+      <p><strong>TLDR newsletter</strong> worked well through IMAP (pulling from Gmail), though parsing email HTML into structured content required some effort.</p>
+
+      <p><strong>TechCrunch</strong> was middling — the main RSS feed works, but topic-specific feeds are unreliable.</p>
+
+      <p><strong>Lenny's Newsletter</strong> was the most frustrating. The content is paywalled and nested under several layers of Substack's link structure. The agent's assessment in one run was accurate: "I can see this is Lenny's Newsletter's introduction/masthead, but it doesn't contain the actual content." Newsletters that aren't structured for programmatic access are inherently difficult for automated digestion.</p>
+
+      <p><strong>Product Hunt and Funcheap SF</strong> returned usable data but required aggressive curation — most items weren't relevant, which is exactly the kind of filtering the curation layer and agent were designed to handle.</p>
+
+      <h2>GitHub Actions: The Best Free Server You're Not Using</h2>
+
+      <p>The entire project runs on <a href="https://docs.github.com/en/actions" target="_blank">GitHub Actions</a> — no EC2, no Lambda, no Render, no Vercel. For personal automations that run once or twice a day, GitHub Actions is genuinely underrated as free infrastructure. Free tier limits: 2,000 minutes/month for private repos, unlimited for public repos. My daily run takes 2–4 minutes, so even on a private repo I'd use roughly 120 minutes/month — well under the limit.</p>
+
+      <h2>Cost Analysis</h2>
+
+      <table>
+        <tr>
+          <th>Version</th>
+          <th>Daily cost</th>
+          <th>Annual cost</th>
+          <th>What you get</th>
+        </tr>
+        <tr>
+          <td><strong>v1.0</strong></td>
+          <td>$0</td>
+          <td>$0</td>
+          <td>Flat summaries, no curation, rate limit failures</td>
+        </tr>
+        <tr>
+          <td><strong>v1.5</strong></td>
+          <td>~$0.018</td>
+          <td>~$6.50</td>
+          <td>Curated, themed, tiered relevance</td>
+        </tr>
+        <tr>
+          <td><strong>v2.0</strong></td>
+          <td>~$0.03–0.05</td>
+          <td>~$11–18</td>
+          <td>Agentic curation, cross-source synthesis, adaptive error handling</td>
+        </tr>
+      </table>
+
+      <p>The jump from v1 to v1.5 — going from free to $6.50/year — delivered the single biggest quality improvement. The jump from v1.5 to v2 added meaningful capabilities but the marginal quality improvement per dollar was smaller. My take: the $0.018/day for Haiku is the highest-ROI investment in this project.</p>
+
+      <h2>What I'd Do Differently</h2>
+
+      <p><strong>Test RSS URLs before committing them.</strong> I spent real debugging time on the TechCrunch URL that would have taken 30 seconds to verify with <code>curl</code>.</p>
+
+      <p><strong>Use proper APIs from the start, not scraping.</strong> DuckDuckGo scraping worked locally and broke in production. Exa cost me nothing but saved a full debugging cycle.</p>
+
+      <p><strong>Build the fallback pipeline first.</strong> It's what gives you confidence to iterate aggressively on the agent layer, knowing you'll always have a working backup.</p>
+
+      <p><strong>Be explicit about billing endpoints.</strong> When you tell an agent to "use Anthropic's API," make sure it can't interpret that as "use Anthropic's models through a third-party router."</p>
+
+      <p><strong>Start with hosted models, then optimize.</strong> Prototype with the most capable model you can afford, get the system working, then tune for cost.</p>
+
+      <h2>Try It Yourself</h2>
+
+      <p>Both versions are open source:</p>
+
+      <p><strong>v1/v1.5:</strong> <a href="https://github.com/sumoseah/daily-digest" target="_blank">github.com/sumoseah/daily-digest</a> — The <code>main</code> branch is v1, the <code>development</code> branch is v1.5.</p>
+
+      <p><strong>v2 (agentic):</strong> <a href="https://github.com/sumoseah/daily-digest-v2" target="_blank">github.com/sumoseah/daily-digest-v2</a> — The full agentic version with Claude Agent SDK, Exa search, and fallback pipeline.</p>
+
+      <p>To get started, you'll need: a GitHub account (free), an <a href="https://console.anthropic.com/" target="_blank">Anthropic API key</a> ($5 minimum credit), a <a href="https://resend.com/" target="_blank">Resend</a> account (free tier), and optionally an <a href="https://exa.ai/" target="_blank">Exa</a> API key (free tier, 1,000 queries/month). Fork the repo, add your API keys to GitHub Secrets, edit <code>user_profile.yaml</code> with your interests and sources, and push. Your first digest will arrive the next morning.</p>
+
+      <div class="post-footer">
+        <p><strong>About the author:</strong> I'm Linus Seah — MBA student at Kellogg (Northwestern), aspiring Solutions Architect, based in San Francisco. I write about building practical AI systems from the perspective of someone who's learning by doing, not just reading. This is part of my ongoing series, <em>Applied AI Thinking for Operators</em>.</p>
+        <p>
+          <a href="https://www.linkedin.com/in/linusseah/" target="_blank">LinkedIn</a> ·
+          <a href="https://github.com/sumoseah" target="_blank">GitHub</a> ·
+          <a href="https://github.com/sumoseah/daily-digest-v2" target="_blank">Project Repo</a>
+        </p>
+        <p style="font-size:12px; color: var(--text-muted); margin-top:24px;">
+          <em>References:</em><br>
+          · <a href="https://docs.anthropic.com/en/docs/agents-and-tools/agent-sdk" target="_blank">Anthropic — Claude Agent SDK</a><br>
+          · <a href="https://exa.ai/" target="_blank">Exa — Neural Search API</a><br>
+          · <a href="https://resend.com/" target="_blank">Resend — Email API</a><br>
+          · <a href="https://docs.github.com/en/actions" target="_blank">GitHub Actions</a><br>
+          · Sam Bhagwat — <a href="https://www.gatsbyjs.com/resources/ai-agents" target="_blank">AI Agent Framework</a><br>
+          · Chip Huyen — <a href="https://huyenchip.com/2025/01/16/ai-engineering-pitfalls.html" target="_blank">AI Engineering Pitfalls</a>
+        </p>
+      </div>
+
+    </article>
+
+  </main>
+
+  <footer>
+    <div class="container">
+      Linus Seah · 2026
+    </div>
+  </footer>
+
+</body>
+</html>

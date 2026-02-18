@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Web Scraping and Classifying Posts from Reddit — Linus Seah</title>
+  <meta name="description" content="Web scraping posts from two subreddits and applying NLP and classification modelling to accurately distinguish between them.">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+  <nav>
+    <div class="container">
+      <a href="/" class="nav-name">Linus Seah</a>
+      <ul class="nav-links">
+        <li><a href="/about.html">About</a></li>
+        <li><a href="/projects.html">Projects</a></li>
+        <li><a href="/blog/" class="active">Blog</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main class="container">
+
+    <div class="post-header">
+      <div class="series">General Assembly — Data Science Immersive · Project 3</div>
+      <h1>Web Scraping and Classifying Posts from Reddit</h1>
+      <p class="post-subtitle">Applying natural language processing and classification modelling to distinguish posts from two different subreddits.</p>
+      <div class="post-meta">
+        By <a href="https://www.linkedin.com/in/linusseah/" target="_blank">Linus Seah</a> · December 2019 ·
+        Code: <a href="https://github.com/linusseah/General-DataScience-Projects-/tree/master/project_3_reddit" target="_blank">GitHub</a>
+      </div>
+    </div>
+
+    <article class="prose">
+
+      <h2>Overview</h2>
+
+      <p><strong>Objective:</strong> Web scrape posts from two subreddits on Reddit.com and apply natural language processing (NLP) methods and classification modelling to accurately classify posts as belonging to one subreddit or the other.</p>
+
+      <p>This project covered the full pipeline from data collection through deployment: using Reddit's API to scrape post titles and text, applying text cleaning and vectorisation, and training several classifiers to distinguish between the two communities.</p>
+
+      <p>The full code is available on <a href="https://github.com/linusseah/General-DataScience-Projects-/tree/master/project_3_reddit" target="_blank">GitHub</a>.</p>
+
+      <h2>Approach</h2>
+
+      <h3>1. Data Collection via Web Scraping</h3>
+
+      <p>Posts were collected from two subreddits using Reddit's <code>pushshift.io</code> API. The scraper collected post titles and selftext, stored as a CSV for downstream processing. Key considerations:</p>
+
+      <ul style="margin: 0 0 20px 24px; line-height: 1.75;">
+        <li>Rate limiting — built in delays between API calls to avoid being throttled</li>
+        <li>Handling duplicate posts — subreddits can have reposted content, so de-duplication was necessary</li>
+        <li>Handling removed/deleted posts — these show as <code>[removed]</code> or <code>[deleted]</code> and need to be dropped</li>
+      </ul>
+
+      <h3>2. Text Pre-Processing and NLP</h3>
+
+      <p>The raw text was cleaned using a standard NLP pipeline:</p>
+
+      <ul style="margin: 0 0 20px 24px; line-height: 1.75;">
+        <li>Strip HTML tags (using <code>BeautifulSoup</code>)</li>
+        <li>Remove non-letter characters (using <code>regex</code>)</li>
+        <li>Convert to lowercase</li>
+        <li>Remove stopwords (using <code>nltk</code>)</li>
+        <li>Lemmatise words (using <code>WordNetLemmatizer</code>)</li>
+      </ul>
+
+      <p>Once cleaned, text was converted to numerical form using two vectorisers:</p>
+
+      <ul style="margin: 0 0 20px 24px; line-height: 1.75;">
+        <li><strong>CountVectorizer</strong> — counts occurrences of each unique word feature</li>
+        <li><strong>TF-IDF Vectorizer</strong> — assigns scores based on how distinctive a word is within a document relative to the whole corpus</li>
+      </ul>
+
+      <p>Key vectoriser parameters tuned:</p>
+      <ul style="margin: 0 0 20px 24px; line-height: 1.75;">
+        <li><code>max_features</code> — limit the vocabulary size to reduce sparsity</li>
+        <li><code>min_df</code> — only include words appearing in at least N documents</li>
+        <li><code>ngram_range</code> — include unigrams and/or bigrams (bigrams improve context capture, e.g., "not happy" vs. "happy")</li>
+      </ul>
+
+      <h3>3. Classification Modelling</h3>
+
+      <p>Several classifiers were evaluated:</p>
+
+      <ul style="margin: 0 0 20px 24px; line-height: 1.75;">
+        <li><strong>Logistic Regression</strong> — strong baseline for NLP tasks, interpretable coefficients</li>
+        <li><strong>Naive Bayes (Multinomial and Bernoulli)</strong> — fast and effective for text classification</li>
+        <li><strong>Random Forest</strong> — captures non-linear relationships but computationally expensive at scale</li>
+      </ul>
+
+      <p>Models were evaluated using:</p>
+      <ul style="margin: 0 0 20px 24px; line-height: 1.75;">
+        <li>K-fold cross-validation accuracy scores</li>
+        <li>Train/test accuracy comparison (to detect overfitting)</li>
+        <li>Confusion matrix analysis</li>
+      </ul>
+
+      <h2>Key Takeaways</h2>
+
+      <div class="insight-box">
+        <div class="label">What I Learned</div>
+        <ul style="margin: 0 0 0 20px; line-height: 1.75;">
+          <li>The choice of vectoriser (CountVec vs. TF-IDF) made a surprisingly small difference to classification accuracy — model architecture and hyperparameter tuning had more impact.</li>
+          <li>Bigrams (n-gram range (1,2)) consistently improved classification because they captured negations and common phrases that unigrams missed.</li>
+          <li>CountVectorizer tends to pick up high-frequency but low-information words; TF-IDF penalises these, but in practice the top features were often still similar between the two.</li>
+          <li>Logistic regression's coefficients are interpretable and useful for understanding <em>which</em> words drive the classification decision — a key advantage over black-box models.</li>
+          <li>Sparse matrix problems become very real at scale — limiting <code>max_features</code> and <code>min_df</code> is essential for computational feasibility.</li>
+        </ul>
+      </div>
+
+      <div class="post-footer">
+        <p><strong>About the author:</strong> I'm Linus Seah — MBA student at Kellogg (Northwestern), aspiring Solutions Architect, based in San Francisco. This post is from my General Assembly Data Science Immersive projects (2019).</p>
+        <p>
+          <a href="https://www.linkedin.com/in/linusseah/" target="_blank">LinkedIn</a> ·
+          <a href="https://github.com/linusseah" target="_blank">GitHub</a> ·
+          <a href="https://github.com/linusseah/General-DataScience-Projects-/tree/master/project_3_reddit" target="_blank">Project Code</a>
+        </p>
+      </div>
+
+    </article>
+
+  </main>
+
+  <footer>
+    <div class="container">
+      Linus Seah · 2026
+    </div>
+  </footer>
+
+</body>
+</html>

@@ -1,0 +1,111 @@
+<svg viewBox="0 0 1000 500" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .spectrum-label { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 13px; font-weight: 600; text-anchor: middle; }
+      .spectrum-desc { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 11px; text-anchor: middle; }
+      .diagram-title { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 20px; font-weight: 700; fill: #1e293b; }
+      .version-label { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 12px; font-weight: 600; text-anchor: middle; }
+      .version-desc { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 10px; text-anchor: middle; fill: #475569; }
+      .attribution { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 10px; fill: #94a3b8; font-style: italic; }
+    </style>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1000" height="500" fill="white"/>
+
+  <!-- Title -->
+  <text x="500" y="40" class="diagram-title">The Spectrum of Agency</text>
+
+  <!-- Main spectrum bar with gradient -->
+  <!-- Define gradient -->
+  <defs>
+    <linearGradient id="spectrumGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#f59e0b;stop-opacity:1" />
+      <stop offset="25%" style="stop-color:#f59e0b;stop-opacity:1" />
+      <stop offset="37.5%" style="stop-color:#8b5cf6;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#6366f1;stop-opacity:1" />
+      <stop offset="62.5%" style="stop-color:#6366f1;stop-opacity:1" />
+      <stop offset="75%" style="stop-color:#10b981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#10b981;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Spectrum bar -->
+  <rect x="80" y="100" width="840" height="60" rx="8" fill="url(#spectrumGradient)" stroke="#cbd5e1" stroke-width="1"/>
+
+  <!-- Section labels and descriptions -->
+
+  <!-- Section 1: Automatic (Amber) -->
+  <g>
+    <text x="140" y="85" class="spectrum-label" fill="#f59e0b">Automatic</text>
+    <text x="140" y="175" class="spectrum-desc">Pre-programmed actions</text>
+    <text x="140" y="190" class="spectrum-desc">Cron jobs, if/then rules</text>
+  </g>
+
+  <!-- Section 2: Tool-Augmented (Amber to Indigo) -->
+  <g>
+    <text x="280" y="85" class="spectrum-label" fill="#6366f1">Tool-Augmented</text>
+    <text x="280" y="175" class="spectrum-desc">LLM makes binary choices</text>
+    <text x="280" y="190" class="spectrum-desc">Decision trees</text>
+  </g>
+
+  <!-- Section 3: Adaptive (Indigo) -->
+  <g>
+    <text x="420" y="85" class="spectrum-label" fill="#6366f1">Adaptive</text>
+    <text x="420" y="175" class="spectrum-desc">LLM has memory, calls tools</text>
+    <text x="420" y="190" class="spectrum-desc">Retries on failure</text>
+  </g>
+
+  <!-- Section 4: Planning (Indigo to Emerald) -->
+  <g>
+    <text x="560" y="85" class="spectrum-label" fill="#10b981">Planning</text>
+    <text x="560" y="175" class="spectrum-desc">LLM divides tasks</text>
+    <text x="560" y="190" class="spectrum-desc">Manages subtasks, adjusts strategy</text>
+  </g>
+
+  <!-- Section 5: Autonomous (Emerald) -->
+  <g>
+    <text x="720" y="85" class="spectrum-label" fill="#10b981">Autonomous</text>
+    <text x="720" y="175" class="spectrum-desc">Self-improving</text>
+    <text x="720" y="190" class="spectrum-desc">Learns from outcomes, sets own goals</text>
+  </g>
+
+  <!-- Version markers with arrows pointing to positions -->
+
+  <!-- v1.0 marker -->
+  <g>
+    <line x1="140" y1="230" x2="140" y2="260" stroke="#f59e0b" stroke-width="2" marker-end="url(#arrowhead-amber)"/>
+    <text x="140" y="290" class="version-label" fill="#f59e0b">v1.0</text>
+    <text x="140" y="305" class="version-desc">"Dumb Pipeline"</text>
+  </g>
+
+  <!-- v1.5 marker -->
+  <g>
+    <line x1="280" y1="230" x2="280" y2="260" stroke="#6366f1" stroke-width="2" marker-end="url(#arrowhead-indigo)"/>
+    <text x="280" y="290" class="version-label" fill="#6366f1">v1.5</text>
+    <text x="280" y="305" class="version-desc">"Smarter Pipeline"</text>
+  </g>
+
+  <!-- v2.0 marker -->
+  <g>
+    <line x1="560" y1="230" x2="560" y2="260" stroke="#10b981" stroke-width="2" marker-end="url(#arrowhead-emerald)"/>
+    <text x="560" y="290" class="version-label" fill="#10b981">v2.0</text>
+    <text x="560" y="305" class="version-desc">"Agentic Pipeline"</text>
+  </g>
+
+  <!-- Arrow markers definition -->
+  <defs>
+    <marker id="arrowhead-amber" markerWidth="10" markerHeight="10" refX="5" refY="5" orient="auto">
+      <polygon points="0 0, 10 5, 0 10" fill="#f59e0b" />
+    </marker>
+    <marker id="arrowhead-indigo" markerWidth="10" markerHeight="10" refX="5" refY="5" orient="auto">
+      <polygon points="0 0, 10 5, 0 10" fill="#6366f1" />
+    </marker>
+    <marker id="arrowhead-emerald" markerWidth="10" markerHeight="10" refX="5" refY="5" orient="auto">
+      <polygon points="0 0, 10 5, 0 10" fill="#10b981" />
+    </marker>
+  </defs>
+
+  <!-- Attribution -->
+  <text x="500" y="450" class="attribution">Adapted from Sam Bhagwat's framework</text>
+</svg>

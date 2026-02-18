@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>What "Agent" Actually Means — Linus Seah</title>
+  <meta name="description" content="I built the same thing three times — each with a different level of agency. Here's what I learned about what that word actually means.">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+  <nav>
+    <div class="container">
+      <a href="/" class="nav-name">Linus Seah</a>
+      <ul class="nav-links">
+        <li><a href="/about.html">About</a></li>
+        <li><a href="/projects.html">Projects</a></li>
+        <li><a href="/blog/" class="active">Blog</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main class="container">
+
+    <div class="post-header">
+      <div class="series">Applied AI Thinking for Operators · Part 1 of 2</div>
+      <h1>What "Agent" Actually Means: Lessons from Building My Morning News Digest</h1>
+      <p class="post-subtitle">I built the same thing three times — each with a different level of "agency." Here's what I learned about what that word actually means.</p>
+      <div class="post-meta">
+        By <a href="https://www.linkedin.com/in/linusseah/" target="_blank">Linus Seah</a> · February 2026 · 10 min read<br>
+        Code: <a href="https://github.com/sumoseah/daily-digest" target="_blank">v1/v1.5</a> · <a href="https://github.com/sumoseah/daily-digest-v2" target="_blank">v2</a>
+      </div>
+    </div>
+
+    <article class="prose">
+
+      <p>Every morning I open my inbox, and sitting at the top is an email that didn't exist 24 hours ago. It tells me what happened overnight in AI, flags the one TechCrunch story worth reading, and reminds me there's a free art walk in the Mission this weekend. It reads like a note from a well-informed friend — not an algorithm.</p>
+
+      <p>I built this myself. Three times, actually. Each iteration taught me something different — not just about code, but about a word I kept seeing everywhere and didn't fully understand: <strong>agent</strong>.</p>
+
+      <p>This post is about that word. I'm going to walk you through three versions of the same project — a personal daily news digest — and use the progression to explore what "agency" actually means in the context of AI systems. Not the marketing definition. The practical one.</p>
+
+      <p>A companion post, <a href="/blog/technical-playbook/">Part 2: The Technical Playbook</a>, covers the implementation details, code, bugs, and cost analysis for anyone who wants to build something similar.</p>
+
+      <h2>The Itch I Was Trying to Scratch</h2>
+
+      <p>I read a lot. Every morning I'd have tabs open across <a href="https://simonwillison.net/" target="_blank">Simon Willison's blog</a>, the <a href="https://tldr.tech/" target="_blank">TLDR newsletter</a> in my inbox, TechCrunch, Product Hunt, and Lenny's Newsletter. I also wanted to know about cheap events happening in SF over the weekend.</p>
+
+      <p>The problem was that it was taking me 20–30 minutes every morning just to triage these sources before I even started reading the interesting stuff. I wanted a single email in my inbox at 7am that had already done the triage for me — curated, not comprehensive.</p>
+
+      <p>Commercial tools like Feedly or Morning Brew exist, but they don't know <em>me</em>. They can't combine my exact set of sources, apply my personal interest filters (AI agents > VC funding > SF events), or write in the voice of a knowledgeable friend who tells you only what actually matters.</p>
+
+      <p>So I built it. And in doing so, I accidentally designed an experiment in what "agency" really means.</p>
+
+      <h2>v1.0 — "It Works, Ship It"</h2>
+
+      <p>The first version was the simplest thing that could possibly work: a single Python script running on a <a href="https://docs.github.com/en/actions" target="_blank">GitHub Actions</a> cron job. Every morning at 7am PST, it would fetch RSS feeds and Gmail via IMAP, call a free LLM through <a href="https://openrouter.ai/" target="_blank">OpenRouter</a> to summarize each source, assemble an HTML email, and send it via <a href="https://resend.com/" target="_blank">Resend</a>.</p>
+
+      <p>It worked. Emails arrived reliably. Cost was zero. And honestly, for a weekend project, that felt like a win.</p>
+
+      <p>But the output was... flat. If TechCrunch had ten boring articles, all ten got summarized. If Simon Willison and TLDR both covered the same Anthropic announcement, they appeared as separate items with no awareness of each other. The digest felt like a firehose, not a morning briefing.</p>
+
+      <div class="figure">
+        <img src="/images/paid_haiku_comparison.png" alt="Side-by-side comparison of v1.0 and v1.5 digest output">
+        <div class="caption">v1.0 (left) treats every source independently — no curation, no theme, no editorial voice. v1.5 (right) adds a curation layer that scores items by relevance and writes a daily editorial intro.</div>
+      </div>
+
+      <p>Here's the question that nagged me: was this an "agent"? It ran automatically. It made decisions (sort of). It acted on my behalf every morning without me touching it.</p>
+
+      <p>The answer, I'd later realize, is <em>no</em> — and understanding why took me through two more versions.</p>
+
+      <h2>The Word Everyone Uses and Nobody Agrees On</h2>
+
+      <p>"Agent" is one of those terms that has been stretched to mean almost anything. Your email autoresponder is an "agent." Your Roomba is an "agent." The thing that books your flights autonomously and negotiates hotel rates — also an "agent." These are clearly not the same thing.</p>
+
+      <p>When I started this project, I had a misconception that I think a lot of people share: I equated <em>automatic</em> with <em>autonomous</em>. If something acts on your behalf without you pressing a button, it's an agent, right?</p>
+
+      <p>Not really. My thermostat acts on my behalf automatically, but nobody calls it an agent (at least not in the sense that's making waves in AI right now). A cron job that fires every morning is automatic. A macro that reformats your spreadsheet is automatic. But <strong>automatic is not the same as autonomous</strong>, and deterministic is not the same as agentic.</p>
+
+      <div class="callout">
+        <strong>The distinction that matters:</strong> In a deterministic workflow, the LLM is just another tool — like a database or an API. It gets called at a fixed point in the pipeline to do a specific task. In an agentic workflow, the LLM plays the role of orchestrator — given a goal, it makes its own decisions about which tools to use, what to filter, and how to adapt when things go wrong.
+      </div>
+
+      <p>This is the insight I missed early on. It's not about the ingredients. You can have an LLM in your pipeline, combine it with RAG and prompt engineering and web search, and still not have an agentic system. What makes it agentic isn't what tools you use — it's <em>the role the LLM plays</em> in your workflow. Is it a tool being called, or is it the one making the calls?</p>
+
+      <h2>The Spectrum of Agency</h2>
+
+      <p>I found a framework that helped me think about this more clearly. <a href="https://www.gatsbyjs.com/blog/author/sam-bhagwat" target="_blank">Sam Bhagwat</a> describes levels of agency on a spectrum, and mapping my three versions onto it was revealing:</p>
+
+      <div class="figure">
+        <img src="/images/agency_spectrum.svg" alt="The Spectrum of Agency — from Automatic to Autonomous, with v1.0, v1.5, and v2.0 mapped">
+        <div class="caption">Where each version of my digest falls on the spectrum of agency. Adapted from Sam Bhagwat's framework.</div>
+      </div>
+
+      <p>At the low end, agents make binary choices in a decision tree. At a medium level, agents have memory, call tools, and retry failed tasks. At a high level, agents do planning — they divide tasks into subtasks and manage their own task queue.</p>
+
+      <p>My v1.0 was barely on this spectrum at all. It was purely automatic: a deterministic pipeline where every step was pre-programmed. The LLM was a summarization tool, nothing more.</p>
+
+      <h2>v1.5 — Adding a Curation Brain</h2>
+
+      <p>The first meaningful improvement was adding a curation layer. After fetching all sources, the script would make one additional LLM call with all the raw content and ask it to score each item on a 0-to-1 relevance scale based on a user profile I'd defined in a YAML config file. Items below a 0.6 threshold got cut. High-scoring items got longer summaries. The LLM also wrote a 2–3 sentence editorial intro framing the day's top theme.</p>
+
+      <p>The results were noticeably better. The digest felt more like reading a friend's curated picks than a raw dump of everything published that day. Funcheap SF events about art walks in Oakland got filtered out (low relevance for someone interested in AI). The editorial intro surfaced cross-source themes like "OpenClaw is dominating the conversation today."</p>
+
+      <div class="insight-box">
+        <div class="label">What changed in v1.5</div>
+        <p style="margin:0;">The pipeline went from <code>fetch → summarize → send</code> to <code>fetch → <strong>curate</strong> → summarize (tiered) → send</code>. A new <code>user_profile.yaml</code> file defined my interests, and the LLM used it to make relevance decisions. But every decision point was still pre-programmed in Python. The LLM was doing more sophisticated work, but it was still being told exactly when and how to do it.</p>
+      </div>
+
+      <p>Was v1.5 an agent? It was closer. The LLM was now making editorial decisions — which items to include, how much detail to give each one, what theme to highlight. But those decisions were happening at fixed, pre-determined points in a rigid pipeline. If TechCrunch's RSS URL changed, the whole section silently broke. There was no ability to adapt, recover, or try something different.</p>
+
+      <p>On the spectrum of agency, v1.5 sits at "tool-augmented." The LLM makes some choices, but only at pre-defined checkpoints. It's smarter, but it's still on rails.</p>
+
+      <h2>v2.0 — Letting the Agent Decide</h2>
+
+      <p>Version 2 was a fundamentally different architecture. Instead of a hand-coded pipeline telling the LLM what to do at each step, I gave the agent a system prompt, a set of CLI tools, and a goal — then let it figure out the workflow on its own.</p>
+
+      <div class="figure">
+        <img src="/images/v2_architecture.svg" alt="v2.0 Architecture — Agent Orchestrator with tool access and fallback pipeline">
+        <div class="caption">v2.0 architecture: the LLM is no longer a tool in the pipeline — it IS the pipeline. It decides which tools to call, in what order, and how to handle failures. A deterministic fallback catches agent failures.</div>
+      </div>
+
+      <p>This version uses the <a href="https://docs.anthropic.com/en/docs/agents-and-tools/agent-sdk" target="_blank">Claude Agent SDK</a> with Claude Sonnet as the orchestrator. The agent has access to five CLI tools — RSS fetcher, IMAP fetcher, <a href="https://exa.ai/" target="_blank">Exa</a> web search, email sender, and a logging tool — and a system prompt that describes the task, editorial standards, and how to handle failures.</p>
+
+      <p>The difference in output was striking. Where v1.5 would produce a digest organized by source (Simon Willison section, TLDR section, TechCrunch section), v2 groups items by theme. If three different sources all covered the same story, the agent synthesizes them into a single item with context from each. It writes an editorial intro that doesn't just summarize — it offers an opinion on what's worth your time.</p>
+
+      <div class="figure">
+        <img src="/images/v2_agentic_output.png" alt="v2 agentic daily digest output">
+        <div class="caption">A v2 digest. Note the themed sections (AI Agents & Models, Developer Experience), editorial voice, and the technical notice when sources had issues — the agent adapted and told me about it instead of silently failing.</div>
+      </div>
+
+      <p>But the most interesting difference isn't in the output — it's in the behavior. When a source fails, the agent can search the web for equivalent coverage using <a href="https://exa.ai/" target="_blank">Exa's neural search</a>. When it encounters a newsletter that's paywalled or poorly structured for scraping (I'm looking at you, Lenny's Newsletter), it notes the limitation and moves on instead of producing garbage. When multiple sources cover the same story, it genuinely deduplicates and synthesizes instead of repeating itself.</p>
+
+      <p>And the most telling detail: when things went wrong on one morning's run (IMAP authentication broke, RSS parsing hit an error, web search returned empty), the agent adapted its strategy, produced a digest from what it could access, and included a yellow notice explaining the technical issues. It made a judgment call about what was still worth sending — and it was the right call.</p>
+
+      <h2>So What Does Agency Actually Buy You?</h2>
+
+      <p>After running all three versions, here's what I think the real value of the "agentic layer" is. It's not about making things automatic — v1 was already automatic. It's about three specific capabilities:</p>
+
+      <h3>1. Adaptive error handling</h3>
+      <p>In a deterministic pipeline, if step 3 fails, the pipeline fails (or silently skips). In an agentic system, the agent can notice the failure, try an alternative approach, and decide what's still worth producing. This is genuinely useful for anything that depends on flaky external sources — which is basically every real-world data pipeline.</p>
+
+      <h3>2. Cross-source synthesis</h3>
+      <p>My v1 and v1.5 digests were organized by source because the pipeline processed each source independently. The agent in v2 sees all the content at once and groups it by theme. This sounds small, but it's the difference between reading seven separate summaries and reading a coherent briefing. This is editorial judgment, and the LLM is genuinely good at it when you give it the right context and instructions.</p>
+
+      <h3>3. Editorial voice and judgment</h3>
+      <p>The v2 system prompt tells the agent to write like "a knowledgeable friend who reads everything and tells you only what actually matters." It's a simple instruction, but it produces output that feels qualitatively different from a summarization pipeline. The agent's intro to one morning's digest read: "OpenClaw is dominating the conversation today, with practical implementation guides competing against skeptical takes on whether the hype matches reality. The more interesting thread runs through cognitive debt." That's not summarization — that's curation with a point of view.</p>
+
+      <div class="callout">
+        <strong>The mental model I use now:</strong> If your workflow has a fixed sequence of steps and the LLM fills a slot in that sequence, you have an LLM-augmented pipeline. If the LLM looks at a goal, decides what to do, picks its tools, adapts when things break, and makes editorial or strategic judgments — you have an agentic system. The difference isn't in sophistication. It's in who's driving.
+      </div>
+
+      <h2>What Stronger Agency Would Look Like</h2>
+
+      <p>My v2 sits at the "adaptive" to "planning" level on the agency spectrum. The agent calls tools, handles errors, and makes editorial decisions. But it doesn't learn from my behavior over time, and it doesn't set its own goals.</p>
+
+      <p>A v3 — if I build it — would move further right on the spectrum. It would track which digest items I actually click on and adjust future relevance scoring. It would notice that I stopped reading TechCrunch funding stories and dial them down. It might proactively suggest new sources based on topics I've been engaging with. It would have memory across runs, not just within a single execution.</p>
+
+      <p>At the far right of the spectrum — true autonomous agency — the system would set its own information-gathering goals, seek out sources I've never heard of, and potentially even draft analysis or talking points based on emerging trends it noticed before I did. We're not there yet, and for a personal morning digest, we probably don't need to be. But mapping your project onto this spectrum is a useful exercise for knowing what level of complexity is actually warranted.</p>
+
+      <h2>What I Actually Learned</h2>
+
+      <p>I started this project wanting a better morning email. I ended up with a working mental model for something I see debated constantly in AI circles: what counts as an agent and what doesn't.</p>
+
+      <p>The framework I'd offer to anyone building with LLMs is simple: before reaching for an agentic architecture, ask yourself what role the LLM needs to play. If it's filling a fixed slot in your pipeline — summarize this, classify that, extract these fields — you don't need an agent. A well-designed deterministic pipeline with an LLM step will be cheaper, faster, and more predictable.</p>
+
+      <p>But if your workflow needs to adapt to unpredictable inputs, make judgment calls about quality, synthesize across multiple sources, or gracefully handle failure — that's where agency starts earning its keep. Not because it's fancier, but because the alternative is writing increasingly brittle if/else trees that try to anticipate every edge case.</p>
+
+      <p>The honest answer is that most workflows probably don't need agents today. But the ones that do benefit enormously — and learning to recognize the difference is a skill worth developing.</p>
+
+      <div class="insight-box">
+        <div class="label">Key takeaway</div>
+        <p style="margin:0;">"Agent" is not a binary. It's a spectrum. And the right question isn't "should I use an agent?" — it's "what level of agency does my problem actually require?" Start with the simplest thing that works, then add agency where it demonstrably improves outcomes. I know this because I built the simple thing first, and the progression taught me exactly where agency mattered and where it was overkill.</p>
+      </div>
+
+      <div class="next-post">
+        <div class="label">Up Next — Part 2 of 2</div>
+        <div class="title"><a href="/blog/technical-playbook/">The Technical Playbook: Building a Personal AI Digest from Scratch</a></div>
+        <p style="font-size:15px; color: var(--text-light); margin:8px 0 0;">The implementation details: Claude Agent SDK, Exa Search, free vs. paid models, every bug I hit, cost analysis, and the fallback pattern that makes agentic systems production-ready. Full code walkthroughs included.</p>
+      </div>
+
+      <div class="post-footer">
+        <p><strong>About the author:</strong> I'm Linus Seah — MBA student at Kellogg (Northwestern), aspiring Solutions Architect, based in San Francisco. I write about building practical AI systems from the perspective of someone who's learning by doing, not just reading. This is part of my ongoing series, <em>Applied AI Thinking for Operators</em>.</p>
+        <p>
+          <a href="https://www.linkedin.com/in/linusseah/" target="_blank">LinkedIn</a> ·
+          <a href="https://github.com/sumoseah" target="_blank">GitHub</a> ·
+          <a href="https://github.com/sumoseah/daily-digest-v2" target="_blank">Project Repo</a>
+        </p>
+        <p style="font-size:12px; color: var(--text-muted); margin-top:24px;">
+          <em>References:</em><br>
+          · Sam Bhagwat — <a href="https://www.gatsbyjs.com/resources/ai-agents" target="_blank">AI Agent Framework</a><br>
+          · Anthropic — <a href="https://docs.anthropic.com/en/docs/agents-and-tools/agent-sdk" target="_blank">Claude Agent SDK Documentation</a><br>
+          · Exa — <a href="https://exa.ai/" target="_blank">Neural Search API</a><br>
+          · Ethan Mollick — <a href="https://www.oneusefulthing.org/" target="_blank">One Useful Thing</a><br>
+          · Chip Huyen — <a href="https://huyenchip.com/2025/01/16/ai-engineering-pitfalls.html" target="_blank">AI Engineering Pitfalls</a>
+        </p>
+      </div>
+
+    </article>
+
+  </main>
+
+  <footer>
+    <div class="container">
+      Linus Seah · 2026
+    </div>
+  </footer>
+
+</body>
+</html>

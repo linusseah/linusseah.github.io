@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Regression and Classification with Housing Data — Linus Seah</title>
+  <meta name="description" content="Using the Ames housing data, estimate the sale price of properties and determine features that best predict abnormal sales.">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+  <nav>
+    <div class="container">
+      <a href="/" class="nav-name">Linus Seah</a>
+      <ul class="nav-links">
+        <li><a href="/about.html">About</a></li>
+        <li><a href="/projects.html">Projects</a></li>
+        <li><a href="/blog/" class="active">Blog</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main class="container">
+
+    <div class="post-header">
+      <div class="series">General Assembly — Data Science Immersive · Project 2</div>
+      <h1>Regression and Classification with Housing Data</h1>
+      <p class="post-subtitle">Using the Ames housing data to estimate sale prices and identify features that best predict abnormal sales.</p>
+      <div class="post-meta">
+        By <a href="https://www.linkedin.com/in/linusseah/" target="_blank">Linus Seah</a> · January 2019 ·
+        Code: <a href="https://github.com/linusseah/General-DataScience-Projects-/tree/master/project_2_ameshousing" target="_blank">GitHub</a>
+      </div>
+    </div>
+
+    <article class="prose">
+
+      <h2>Business Case Overview</h2>
+
+      <p>You work for a real estate company interested in using data science to determine the best properties to buy and re-sell. Specifically, your company would like to identify the characteristics of residential houses that estimate the sale price and the cost-effectiveness of doing renovations.</p>
+
+      <p>There are three components to the project:</p>
+
+      <ol style="margin: 0 0 20px 24px; line-height: 1.75;">
+        <li>Estimate the sale price of properties based on their "fixed" characteristics, such as neighborhood, lot size, number of stories, etc.</li>
+        <li>Estimate the value of possible changes and renovations to properties from the variation in sale price not explained by the fixed characteristics. The goal is to estimate the potential return on investment (and how much you should be willing to pay contractors) when making specific improvements to properties.</li>
+        <li>Determine the features in the housing data that best predict "abnormal" sales (foreclosures, etc.).</li>
+      </ol>
+
+      <h2>General ML Project Structure</h2>
+
+      <p>This post documents the structured approach I developed for a machine learning project of this type. Below is the full framework I built up across this project.</p>
+
+      <h3>1. Business Executive Summary / README</h3>
+
+      <ul style="margin: 0 0 20px 24px; line-height: 1.75;">
+        <li>Clearly establish the problem statement and project objective. Objectives should be clear and verifiable (this will help to shortlist the predictor variables).</li>
+        <li>Define the target variable. If it is a binary outcome, it is a classification problem; otherwise, regression. This determines the model to use.</li>
+        <li>Data dictionary: a list of all variables used, their data type, and what they represent.</li>
+        <li>Recommendations/Conclusions: clearly link results back to the problem statement and provide actionable recommendations. State limitations of the model and areas for further improvement.</li>
+      </ul>
+
+      <h3>2. Data Preparation</h3>
+
+      <p><strong>2.1 Key libraries:</strong></p>
+      <ul style="margin: 0 0 20px 24px; line-height: 1.75;">
+        <li><code>pandas</code> — data manipulation and basic plotting</li>
+        <li><code>numpy</code> — numerical/stats calculations</li>
+        <li><code>seaborn</code> and <code>matplotlib.pyplot</code> — customised plotting</li>
+        <li><code>sklearn.model_selection</code> — <code>train_test_split</code>, <code>KFold</code>, <code>cross_val_score</code></li>
+        <li><code>sklearn.linear_model</code> — <code>LinearRegression</code>, <code>LogisticRegression</code>, <code>LassoCV</code>, <code>RidgeCV</code></li>
+        <li><code>sklearn.preprocessing</code> — <code>StandardScaler</code></li>
+        <li><code>sklearn.metrics</code> — <code>r2_score</code></li>
+        <li><code>statsmodels.api</code> — OLS and summary stats</li>
+      </ul>
+
+      <p><strong>2.2 Loading the data:</strong></p>
+      <pre><code>data = pd.read_csv(import_path, keep_default_na=False, na_values=[''])</code></pre>
+      <p>This drops all null values (empty cells) at the reading-in stage. Note that <code>NA</code> as a literal value is <em>not</em> considered null — the distinction matters for Ames housing data, where <code>NA</code> often means "no such feature" rather than a missing value.</p>
+
+      <h3>3. Exploratory Data Analysis</h3>
+
+      <p><strong>3.1 Pandas functions for exploring data:</strong></p>
+      <ul style="margin: 0 0 20px 24px; line-height: 1.75;">
+        <li><code>df.shape</code> — rows and columns count</li>
+        <li><code>df.isnull().sum()</code> — total null values per column (divide by rows for %)</li>
+        <li><code>df.describe()</code> — summary stats, useful for spotting suspicious min/max values</li>
+        <li><code>df.info()</code> — variable types (cross-reference with data dictionary)</li>
+        <li><code>df[col].unique()</code> — list of unique entries (useful to find errant values)</li>
+      </ul>
+
+      <p><strong>3.2 Renaming columns:</strong></p>
+      <pre><code>df.columns = [x.lower().replace(' ','_') for x in df.columns]</code></pre>
+
+      <p><strong>3.3 Understanding data distribution and inter-variable relationships:</strong></p>
+      <ul style="margin: 0 0 20px 24px; line-height: 1.75;">
+        <li>Plot pairplot (target vs. predictor variables — linear or not?)</li>
+        <li>Plot histogram of all predictor variables (normality, need for transformation?)</li>
+        <li>Plot box plot of predictor variables (outliers, general distribution)</li>
+        <li>Drop outlier values <em>before</em> running correlations so they don't skew results</li>
+      </ul>
+
+      <p><strong>3.4 Data Cleaning:</strong></p>
+      <ul style="margin: 0 0 20px 24px; line-height: 1.75;">
+        <li>Split the dataframe into numerical and categorical variables if necessary</li>
+        <li>Deal with null values — drop if few in number, or impute with the median</li>
+        <li>Drop entire columns if variable is non-essential or has too many null values</li>
+        <li>Deal with errant values — drop non-consistent data types, correct spelling errors</li>
+        <li>Remove outliers (manually or based on standard deviations from mean, <em>only if normally distributed</em>)</li>
+      </ul>
+
+      <p><strong>3.5 Understanding inter-variable relationships:</strong></p>
+      <ul style="margin: 0 0 20px 24px; line-height: 1.75;">
+        <li>Run correlations on numerical variables and sort by strength against target</li>
+        <li>Plot heat map of correlations</li>
+        <li>Shortlist top correlated numerical variables</li>
+      </ul>
+
+      <h3>4. Feature Engineering / Data Transformation</h3>
+
+      <p><strong>4.1 Categorical data:</strong></p>
+      <ul style="margin: 0 0 20px 24px; line-height: 1.75;">
+        <li><em>Ordinal:</em> Write a data dictionary assigning values and map it. Make sure ordinal scale is encoded to be intuitive (e.g., poor → excellent maps to small → large numbers).</li>
+        <li><em>Nominal:</em> Consider mean encoding; otherwise use one-hot encoding.</li>
+        <li><em>Binary:</em> One-hot encode, being careful about which category is the baseline (this affects coefficient interpretation).</li>
+      </ul>
+
+      <p><strong>4.2 Polynomial transformations:</strong> Explore squaring or taking the square root of the top correlated regressors.</p>
+
+      <p><strong>4.3 Other interactions:</strong></p>
+      <ul style="margin: 0 0 20px 24px; line-height: 1.75;">
+        <li>Aggregation: sum similar columns (e.g., basement sq ft + first floor sq ft → total sq ft)</li>
+        <li>Multiplication: multiply related dummies</li>
+      </ul>
+
+      <p><strong>4.4 Normalisation:</strong> Take a log transformation for skewed variables. Remember to reverse-transform coefficients when interpreting (take the exponent).</p>
+
+      <h3>5. Feature Selection</h3>
+
+      <ul style="margin: 0 0 20px 24px; line-height: 1.75;">
+        <li>Top correlated numerical variables</li>
+        <li>Top correlated transformed categorical variables</li>
+      </ul>
+
+      <h3>6. Model Evaluation</h3>
+
+      <p><strong>6.1 Train-Test-Split:</strong> Use <code>sklearn cross_val_score</code>.</p>
+
+      <p><strong>6.2 Scaling:</strong></p>
+      <ul style="margin: 0 0 20px 24px; line-height: 1.75;">
+        <li>Scale predictor variables only (target variable does not need scaling)</li>
+        <li>Fit and scale using <code>StandardScaler</code> on training set; transform test set using the already-fitted scaler (do not re-fit)</li>
+      </ul>
+
+      <p><strong>6.3 K-Fold Cross Evaluation:</strong> Report individual K-fold scores and overall mean R² score on both the unscaled (100%) and scaled (80%/training) sets.</p>
+
+      <p><strong>6.4 Linear Regression (baseline):</strong> Report training and test scores; test score should approximate the K-fold mean score. Calculate RMSE.</p>
+
+      <p><strong>6.5 OLS model:</strong> Report adjusted R², F-stat (&lt;0.05 is good), and individual variable T-test p-values.</p>
+
+      <h3>7. Hyperparameter Tuning</h3>
+
+      <p><strong>7.1 Lasso and Ridge Regression:</strong> Use grid search to select the optimal alpha. Check for near-zero Lasso/Ridge coefficients and consider dropping them.</p>
+
+      <p><strong>7.2 VIF:</strong> Use Variance Inflation Factor to check for multicollinearity. Recursively drop variables with VIF > 5.0.</p>
+
+      <p><strong>7.3 T-test:</strong> Drop all variables with high p-values.</p>
+
+      <p><strong>7.4 Recursive Feature Elimination:</strong> Consider using <code>sklearn</code>'s RFE.</p>
+
+      <h3>8. Final Model Selection</h3>
+
+      <p>Compare all models and select the one with the highest R² test score. In the event of a tie, always choose the simpler model. Validate linear regression assumptions — plot residuals to check for heteroskedasticity (residuals should be normally distributed with no correlation to target).</p>
+
+      <h3>9. Generating Results and Recommendations</h3>
+
+      <ul style="margin: 0 0 20px 24px; line-height: 1.75;">
+        <li>Present the final selected features and the magnitude of their coefficients</li>
+        <li>Explain what the metrics mean (R², RMSE — provide context for whether values are "big" or "small")</li>
+        <li>Explain the intuition behind why each variable was selected</li>
+        <li>Clearly state the limitations of the model</li>
+        <li>Clearly state recommendations based on the results</li>
+        <li>Emphasize how much the model improved over time (compare to the naive mean baseline)</li>
+      </ul>
+
+      <h2>Key Learnings from Project 2</h2>
+
+      <div class="insight-box">
+        <div class="label">Key Takeaways</div>
+        <p style="margin:0 0 12px;">A collection of hard-won lessons from this project that generalise beyond housing data:</p>
+        <ul style="margin: 0 0 0 20px; line-height: 1.75;">
+          <li>Remove categories with low variation (e.g. if the mode comprises &gt;80% of the dataset) — they tend to exhibit high multicollinearity.</li>
+          <li>Use a log model to normalise skewed distributions. Always validate that residuals are normally distributed.</li>
+          <li>Aggregate similar columns (e.g. sum total square footage across basement + first floor).</li>
+          <li>Understand how your ordinal scaling is constructed — it must make intuitive sense.</li>
+          <li>Understand how your dummy variable is constructed — dummies are measured relative to a baseline, so if the baseline is the best category, all other coefficients will be negative.</li>
+          <li>When dropping outliers based on standard deviation, the 67/95/99 rule only applies to normally distributed variables.</li>
+          <li>Differentiate between <code>null</code> (empty — could be any value) and <code>NA</code> (specifically means nothing).</li>
+          <li>Always note what your scores are against — scaled vs. unscaled, test vs. training set.</li>
+          <li>Provide context for RMSE — either explain what it means, or do a relative comparison with the baseline model's RMSE.</li>
+        </ul>
+      </div>
+
+      <div class="post-footer">
+        <p><strong>About the author:</strong> I'm Linus Seah — MBA student at Kellogg (Northwestern), aspiring Solutions Architect, based in San Francisco. This post is from my General Assembly Data Science Immersive capstone projects (2019).</p>
+        <p>
+          <a href="https://www.linkedin.com/in/linusseah/" target="_blank">LinkedIn</a> ·
+          <a href="https://github.com/linusseah" target="_blank">GitHub</a> ·
+          <a href="https://github.com/linusseah/General-DataScience-Projects-/tree/master/project_2_ameshousing" target="_blank">Project Code</a>
+        </p>
+      </div>
+
+    </article>
+
+  </main>
+
+  <footer>
+    <div class="container">
+      Linus Seah · 2026
+    </div>
+  </footer>
+
+</body>
+</html>
