@@ -135,6 +135,7 @@ nav .container {
   font-size: 16px;
   color: var(--text-light);
   line-height: 1.65;
+  margin-top: 10px;
 }
 
 /* ── Home Page ── */
