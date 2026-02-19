@@ -38,9 +38,9 @@
 
     <article class="prose">
 
-      <p>In <a href="/blog/what-agent-means/">Part 1</a>, I explored what "agency" actually means by building three versions of a personal daily digest — each with a different level of autonomy. This post is the technical companion: how I built it, what tools I used, every bug I hit, and the trade-offs I navigated along the way.</p>
+      <p>In <a href="/blog/what-agent-means/">Part 1</a>, I explored what "agency" actually means by building three versions of a personal daily digest, each with a different level of autonomy. This post is the technical companion: how I built it, what tools I used, every bug I hit, and the trade-offs I navigated along the way.</p>
 
-      <p>If you want to build something similar — or if you're evaluating whether agentic architectures are worth the complexity for your own projects — this is the honest playbook.</p>
+      <p>If you want to build something similar or if you're evaluating whether agentic architectures are worth the complexity for your own projects, here is my honest playbook.</p>
 
       <h2>The Stack: What I Used and Why</h2>
 
@@ -128,7 +128,7 @@
 
       <div class="cost-highlight">
         <div class="amount">~$6.50/year</div>
-        <div class="context">Total cost of Claude Haiku for daily digest runs. On $25 credit, that's ~3.8 years of runway.</div>
+        <div class="context">Total cost of Claude Haiku for daily digest runs. On $25 credit (that I got courtesy of the Claude Builder Club - shoutout!), that's ~3.8 years of runway.</div>
       </div>
 
       <h2>The Search API Landscape: Why Exa Won</h2>
@@ -218,9 +218,9 @@ content_rules:
   run: python fallback.py</code></pre>
       <div class="code-source"><a href="https://github.com/linusseah/daily-digest-v2/blob/main/.github/workflows/digest.yml" target="_blank">View workflow on GitHub →</a></div>
 
-      <p>Building the fallback first had an unexpected benefit: it gave me confidence to experiment aggressively with the agent layer. I could try wild system prompt changes, swap models, add new tools — knowing that if anything broke, tomorrow's email would still arrive.</p>
+      <p>Building the fallback first had an unexpected benefit: it gave me confidence to experiment aggressively with the agent layer. I could try wild system prompt changes, swap models, add new tools knowing that if anything broke, tomorrow's email would still arrive.</p>
 
-      <h2>Every Bug That Bit Me (The Honest Account)</h2>
+      <h2>Every Bug That Bit Me (My pain, your gain)</h2>
 
       <p>This section is the most valuable for anyone trying to replicate this. These are real problems I encountered, and some of them were surprisingly subtle.</p>
 
@@ -267,19 +267,19 @@ def _extract_body(msg: email.message.Message) -> str:
 
       <h2>Content Sources: What Worked and What Didn't</h2>
 
-      <p><strong>Simon Willison's blog</strong> was the easiest source — clean RSS feed, consistent format, high signal-to-noise ratio. RSS is genuinely the best protocol for automated content consumption and I wish more publishers maintained theirs.</p>
+      <p><strong>Simon Willison's blog</strong> was the easiest source: clean RSS feed, consistent format, high signal-to-noise ratio. RSS is genuinely the best protocol for automated content consumption and I wish more publishers maintained theirs.</p>
 
       <p><strong>TLDR newsletter</strong> worked well through IMAP (pulling from Gmail), though parsing email HTML into structured content required some effort.</p>
 
-      <p><strong>TechCrunch</strong> was middling — the main RSS feed works, but topic-specific feeds are unreliable.</p>
+      <p><strong>TechCrunch</strong> was middling: the main RSS feed works, but topic-specific feeds are unreliable.</p>
 
       <p><strong>Lenny's Newsletter</strong> was the most frustrating. The content is paywalled and nested under several layers of Substack's link structure. The agent's assessment in one run was accurate: "I can see this is Lenny's Newsletter's introduction/masthead, but it doesn't contain the actual content." Newsletters that aren't structured for programmatic access are inherently difficult for automated digestion.</p>
 
-      <p><strong>Product Hunt and Funcheap SF</strong> returned usable data but required aggressive curation — most items weren't relevant, which is exactly the kind of filtering the curation layer and agent were designed to handle.</p>
+      <p><strong>Product Hunt and Funcheap SF</strong> returned usable data but required aggressive curation. Most items weren't relevant, which is exactly the kind of filtering the curation layer and agent were designed to handle.</p>
 
       <h2>GitHub Actions: The Best Free Server You're Not Using</h2>
 
-      <p>The entire project runs on <a href="https://docs.github.com/en/actions" target="_blank">GitHub Actions</a> — no EC2, no Lambda, no Render, no Vercel. For personal automations that run once or twice a day, GitHub Actions is genuinely underrated as free infrastructure. Free tier limits: 2,000 minutes/month for private repos, unlimited for public repos. My daily run takes 2–4 minutes, so even on a private repo I'd use roughly 120 minutes/month — well under the limit.</p>
+      <p>The entire project runs on <a href="https://docs.github.com/en/actions" target="_blank">GitHub Actions</a> No EC2, no Lambda, no Render, no Vercel. For personal automations that run once or twice a day, GitHub Actions is genuinely underrated as free infrastructure. Free tier limits: 2,000 minutes/month for private repos, unlimited for public repos. My daily run takes 2–4 minutes, so even on a private repo I'd use roughly 120 minutes/month, well under the limit.</p>
 
       <h2>Cost Analysis</h2>
 
