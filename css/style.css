@@ -60,9 +60,9 @@ body {
 
 /* ── Navigation ── */
 nav {
-  padding: 24px 0;
+  padding: 20px 0;
   border-bottom: 1px solid var(--border);
-  margin-bottom: 48px;
+  margin-bottom: 32px;
   font-family: var(--font-sans);
 }
 
@@ -118,7 +118,7 @@ nav .container {
 
 /* ── Page Header ── */
 .page-header {
-  margin-bottom: 48px;
+  margin-bottom: 24px;
 }
 
 .page-header h1 {
@@ -139,7 +139,7 @@ nav .container {
 
 /* ── Home Page ── */
 .home-intro {
-  padding: 4px 0 48px;
+  padding: 4px 0 32px;
 }
 
 .home-intro h1 {
@@ -266,7 +266,7 @@ nav .container {
 
 /* ── Blog Post Layout ── */
 .post-header {
-  margin-bottom: 40px;
+  margin-bottom: 28px;
 }
 
 .post-header .series {
@@ -573,7 +573,7 @@ nav .container {
 
 /* ── Footer ── */
 footer {
-  margin-top: 80px;
+  margin-top: 56px;
   padding: 24px 0;
   border-top: 1px solid var(--border);
   font-family: var(--font-sans);
