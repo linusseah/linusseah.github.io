@@ -37,21 +37,21 @@
 
     <article class="prose">
 
-      <p>Every morning I open my inbox, and sitting at the top is an email that didn't exist 24 hours ago. It tells me what happened overnight in AI, flags the one TechCrunch story worth reading, and reminds me there's a free art walk in the Mission this weekend. It reads like a note from a well-informed friend — not an algorithm.</p>
+      <p>Every morning I open my inbox, and sitting at the top is an email that didn't exist 24 hours ago. It tells me what happened overnight in AI, flags the one TechCrunch story worth reading, and reminds me there's a free art walk in the Mission this weekend. It reads like a note from a well-informed friend, not a generic algorithm.</p>
 
-      <p>I built this myself. Three times, actually. Each iteration taught me something different — not just about code, but about a word I kept seeing everywhere and didn't fully understand: <strong>agent</strong>.</p>
+      <p>I built this myself. Three times, actually. Each iteration taught me something different, not just about code, but about a word I kept seeing everywhere and didn't fully understand: <strong>agent</strong>.</p>
 
-      <p>This post is about that word. I'm going to walk you through three versions of the same project — a personal daily news digest — and use the progression to explore what "agency" actually means in the context of AI systems. Not the marketing definition. The practical one.</p>
+      <p>This post is about that word. I'm going to walk you through three versions of the same project: a personal daily news digest, and use the progression to explore what "agency" means in the context of AI systems.</p>
 
       <p>A companion post, <a href="/blog/technical-playbook/">Part 2: The Technical Playbook</a>, covers the implementation details, code, bugs, and cost analysis for anyone who wants to build something similar.</p>
 
       <h2>The Itch I Was Trying to Scratch</h2>
 
-      <p>I read a lot. Every morning I'd have tabs open across <a href="https://simonwillison.net/" target="_blank">Simon Willison's blog</a>, the <a href="https://tldr.tech/" target="_blank">TLDR newsletter</a> in my inbox, TechCrunch, Product Hunt, and Lenny's Newsletter. I also wanted to know about cheap events happening in SF over the weekend.</p>
+      <p>I read a lot. Every morning I'd have tabs open across <a href="https://simonwillison.net/" target="_blank">Simon Willison's blog</a>, the <a href="https://tldr.tech/" target="_blank">TLDR newsletter</a> in my inbox, TechCrunch, Product Hunt, and Lenny's Newsletter just to name a few. Having just moved to the Bay, I also wanted to know about affordable events happening in SF.</p>
 
-      <p>The problem was that it was taking me 20–30 minutes every morning just to triage these sources before I even started reading the interesting stuff. I wanted a single email in my inbox at 7am that had already done the triage for me — curated, not comprehensive.</p>
+      <p>The problem was that it was taking me 20–30 minutes every morning just to triage these sources before I even started reading the interesting stuff. I wanted a single email in my inbox at 7am that had already done the triage for me.</p>
 
-      <p>Commercial tools like Feedly or Morning Brew exist, but they don't know <em>me</em>. They can't combine my exact set of sources, apply my personal interest filters (AI agents > VC funding > SF events), or write in the voice of a knowledgeable friend who tells you only what actually matters.</p>
+      <p>Commercial tools like Feedly or Morning Brew exist, but they don't know <em>me</em>. They can't combine my exact set of sources, apply my personal interest filters (e.g. Latest in AI > General Tech updates > VC funding > SF events), or write in the voice of a knowledgeable friend whom you can trust to tell you only what actually matters.</p>
 
       <p>So I built it. And in doing so, I accidentally designed an experiment in what "agency" really means.</p>
 
@@ -61,7 +61,7 @@
 
       <p>It worked. Emails arrived reliably. Cost was zero. And honestly, for a weekend project, that felt like a win.</p>
 
-      <p>But the output was... flat. If TechCrunch had ten boring articles, all ten got summarized. If Simon Willison and TLDR both covered the same Anthropic announcement, they appeared as separate items with no awareness of each other. The digest felt like a firehose, not a morning briefing.</p>
+      <p>But the output was... flat. If TechCrunch had ten boring articles, all ten got summarized. If Simon Willison and TLDR both covered the same Anthropic announcement, they appeared as separate items with no awareness of each other. The digest felt a bit more like drinking from a firehose, not quite the morning brew I was looking for.</p>
 
       <div class="figure">
         <img src="/images/paid_haiku_comparison.png" alt="Side-by-side comparison of v1.0 and v1.5 digest output">
@@ -74,14 +74,14 @@
 
       <h2>The Word Everyone Uses and Nobody Agrees On</h2>
 
-      <p>"Agent" is one of those terms that has been stretched to mean almost anything. Your email autoresponder is an "agent." Your Roomba is an "agent." The thing that books your flights autonomously and negotiates hotel rates — also an "agent." These are clearly not the same thing.</p>
+      <p>"Agent" is one of those terms that has been stretched to mean almost anything. Your email autoresponder is an "agent." Your Xiaomi Robot Vacuum is an "agent." The thing that books your flights autonomously and negotiates hotel rates is also an "agent." These are clearly not the same thing.</p>
 
       <p>When I started this project, I had a misconception that I think a lot of people share: I equated <em>automatic</em> with <em>autonomous</em>. If something acts on your behalf without you pressing a button, it's an agent, right?</p>
 
       <p>Not really. My thermostat acts on my behalf automatically, but nobody calls it an agent (at least not in the sense that's making waves in AI right now). A cron job that fires every morning is automatic. A macro that reformats your spreadsheet is automatic. But <strong>automatic is not the same as autonomous</strong>, and deterministic is not the same as agentic.</p>
 
       <div class="callout">
-        <strong>The distinction that matters:</strong> In a deterministic workflow, the LLM is just another tool — like a database or an API. It gets called at a fixed point in the pipeline to do a specific task. In an agentic workflow, the LLM plays the role of orchestrator — given a goal, it makes its own decisions about which tools to use, what to filter, and how to adapt when things go wrong.
+        <strong>The distinction that matters:</strong> In a deterministic workflow, the LLM is just another tool, like a database or an API. It gets called at a fixed point in the pipeline to do a specific task. In an agentic workflow, the LLM plays the role of orchestrator: given a goal, it makes its own decisions about which tools to use, what to filter, and how to adapt when things go wrong.
       </div>
 
       <p>This is the insight I missed early on. It's not about the ingredients. You can have an LLM in your pipeline, combine it with RAG and prompt engineering and web search, and still not have an agentic system. What makes it agentic isn't what tools you use — it's <em>the role the LLM plays</em> in your workflow. Is it a tool being called, or is it the one making the calls?</p>
@@ -147,7 +147,7 @@
       <p>My v1 and v1.5 digests were organized by source because the pipeline processed each source independently. The agent in v2 sees all the content at once and groups it by theme. This sounds small, but it's the difference between reading seven separate summaries and reading a coherent briefing. This is editorial judgment, and the LLM is genuinely good at it when you give it the right context and instructions.</p>
 
       <h3>3. Editorial voice and judgment</h3>
-      <p>The v2 system prompt tells the agent to write like "a knowledgeable friend who reads everything and tells you only what actually matters." It's a simple instruction, but it produces output that feels qualitatively different from a summarization pipeline. The agent's intro to one morning's digest read: "OpenClaw is dominating the conversation today, with practical implementation guides competing against skeptical takes on whether the hype matches reality. The more interesting thread runs through cognitive debt." That's not summarization — that's curation with a point of view.</p>
+      <p>The v2 system prompt tells the agent to write like "a knowledgeable friend who reads everything and tells you only what actually matters." It's a simple instruction, but it produces output that feels qualitatively different from a summarization pipeline. The agent's intro to one morning's digest read: "OpenClaw is dominating the conversation today, with practical implementation guides competing against skeptical takes on whether the hype matches reality. The more interesting thread runs through cognitive debt." That's not summarization, that's curation with a point of view.</p>
 
       <div class="callout">
         <strong>The mental model I use now:</strong> If your workflow has a fixed sequence of steps and the LLM fills a slot in that sequence, you have an LLM-augmented pipeline. If the LLM looks at a goal, decides what to do, picks its tools, adapts when things break, and makes editorial or strategic judgments — you have an agentic system. The difference isn't in sophistication. It's in who's driving.
@@ -169,11 +169,11 @@
 
       <p>But if your workflow needs to adapt to unpredictable inputs, make judgment calls about quality, synthesize across multiple sources, or gracefully handle failure — that's where agency starts earning its keep. Not because it's fancier, but because the alternative is writing increasingly brittle if/else trees that try to anticipate every edge case.</p>
 
-      <p>The honest answer is that most workflows probably don't need agents today. But the ones that do benefit enormously — and learning to recognize the difference is a skill worth developing.</p>
+      <p>The honest answer is that most workflows probably don't need agents today. But the ones that do benefit enormously, and learning to recognize the difference is a skill worth developing.</p>
 
       <div class="insight-box">
         <div class="label">Key takeaway</div>
-        <p style="margin:0;">"Agent" is not a binary. It's a spectrum. And the right question isn't "should I use an agent?" — it's "what level of agency does my problem actually require?" Start with the simplest thing that works, then add agency where it demonstrably improves outcomes. I know this because I built the simple thing first, and the progression taught me exactly where agency mattered and where it was overkill.</p>
+        <p style="margin:0;">"Agent" is not a binary. It's a spectrum. And the right question isn't "should I use an agent?" - it's "what level of agency does my problem actually require?" Start with the simplest thing that works, then add agency where it demonstrably improves outcomes. I know this because I built the simple thing first, and the progression taught me exactly where agency mattered and where it was overkill.</p>
       </div>
 
       <div class="next-post">
