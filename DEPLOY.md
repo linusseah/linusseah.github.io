@@ -43,7 +43,7 @@ git add .
 git commit -m "Initial site launch"
 
 # Connect to GitHub (replace with your actual repo URL)
-git remote add origin https://github.com/sumoseah/linusseah.github.io.git
+git remote add origin https://github.com/linusseah/linusseah.github.io.git
 
 # Push to GitHub
 git branch -M main
@@ -60,7 +60,7 @@ GitHub will ask for your credentials. Use a **Personal Access Token** instead of
 
 ### 4. Enable GitHub Pages
 
-1. Go to your repo on GitHub: `https://github.com/sumoseah/linusseah.github.io`
+1. Go to your repo on GitHub: `https://github.com/linusseah/linusseah.github.io`
 2. Click **Settings** → **Pages** (left sidebar)
 3. Under "Source," select **Deploy from a branch**
 4. Branch: **main**, folder: **/ (root)**

@@ -31,7 +31,7 @@
       <p class="post-subtitle">Claude Agent SDK, Exa Search, free vs. paid models, every bug I hit, and the architectural decisions that made it work. Full code included.</p>
       <div class="post-meta">
         By <a href="https://www.linkedin.com/in/linusseah/" target="_blank">Linus Seah</a> · February 2026 · 10 min read<br>
-        Code: <a href="https://github.com/sumoseah/daily-digest" target="_blank">v1/v1.5</a> · <a href="https://github.com/sumoseah/daily-digest-v2" target="_blank">v2</a><br>
+        Code: <a href="https://github.com/linusseah/daily-digest" target="_blank">v1/v1.5</a> · <a href="https://github.com/linusseah/daily-digest-v2" target="_blank">v2</a><br>
         <em>This is Part 2. Read <a href="/blog/what-agent-means/">Part 1: What "Agent" Actually Means</a> for the conceptual framework.</em>
       </div>
     </div>
@@ -141,7 +141,7 @@
 
       <p>That left <a href="https://exa.ai/" target="_blank">Exa</a>, which turned out to be the best option by a wide margin. Exa offers 1,000 free neural search queries per month (more than enough for 3 searches/day), returns content summaries alongside results (not just titles and URLs), and uses semantic search rather than keyword matching. For finding conceptually relevant AI news, semantic search is noticeably better.</p>
 
-      <p>Here's the core search implementation (<a href="https://github.com/sumoseah/daily-digest-v2/blob/main/tools/search_web.py" target="_blank">full source</a>):</p>
+      <p>Here's the core search implementation (<a href="https://github.com/linusseah/daily-digest-v2/blob/main/tools/search_web.py" target="_blank">full source</a>):</p>
 
 <pre><code>def search_exa(query: str, limit: int = 5) -> list[dict]:
     resp = requests.post(
@@ -156,11 +156,11 @@
         },
         timeout=15,
     )</code></pre>
-      <div class="code-source"><a href="https://github.com/sumoseah/daily-digest-v2/blob/main/tools/search_web.py" target="_blank">View full source on GitHub →</a></div>
+      <div class="code-source"><a href="https://github.com/linusseah/daily-digest-v2/blob/main/tools/search_web.py" target="_blank">View full source on GitHub →</a></div>
 
       <h2>The v2 Agent Architecture: System Prompt as the Brain</h2>
 
-      <p>The most interesting architectural decision in v2 is that the agent's intelligence lives in a text file — <a href="https://github.com/sumoseah/daily-digest-v2/blob/main/config/system_prompt.txt" target="_blank"><code>config/system_prompt.txt</code></a> — not in Python code. The system prompt tells the agent what tools it has and how to call them, the editorial standards to maintain, and how to handle failures. The Python code (<a href="https://github.com/sumoseah/daily-digest-v2/blob/main/agent.py" target="_blank"><code>agent.py</code></a>) is just plumbing that launches the agent and catches crashes.</p>
+      <p>The most interesting architectural decision in v2 is that the agent's intelligence lives in a text file — <a href="https://github.com/linusseah/daily-digest-v2/blob/main/config/system_prompt.txt" target="_blank"><code>config/system_prompt.txt</code></a> — not in Python code. The system prompt tells the agent what tools it has and how to call them, the editorial standards to maintain, and how to handle failures. The Python code (<a href="https://github.com/linusseah/daily-digest-v2/blob/main/agent.py" target="_blank"><code>agent.py</code></a>) is just plumbing that launches the agent and catches crashes.</p>
 
       <div class="figure">
         <img src="/images/v1_architecture.svg" alt="v1.0 architecture diagram — simple linear pipeline">
@@ -179,7 +179,7 @@
 
       <p>This separation means you can improve the digest quality by editing a text file, not rewriting code. That's a meaningful shift in how you maintain an LLM application. When I wanted the agent to stop including generic Product Hunt listings, I added one line to the system prompt. When I wanted it to be more opinionated in its editorial intro, I tweaked the voice description. No code changes, no redeployment (the system prompt is read at runtime).</p>
 
-      <p>The other key config is <a href="https://github.com/sumoseah/daily-digest-v2/blob/main/config/user_profile.yaml" target="_blank"><code>config/user_profile.yaml</code></a>:</p>
+      <p>The other key config is <a href="https://github.com/linusseah/daily-digest-v2/blob/main/config/user_profile.yaml" target="_blank"><code>config/user_profile.yaml</code></a>:</p>
 
 <pre><code>interests:
   high_priority:
@@ -197,15 +197,15 @@ content_rules:
   max_digest_items: 20
   min_relevance_score: 0.6
   prefer_themes_over_sources: true</code></pre>
-      <div class="code-source"><a href="https://github.com/sumoseah/daily-digest-v2/blob/main/config/user_profile.yaml" target="_blank">View full config on GitHub →</a></div>
+      <div class="code-source"><a href="https://github.com/linusseah/daily-digest-v2/blob/main/config/user_profile.yaml" target="_blank">View full config on GitHub →</a></div>
 
       <h2>The Fallback Pattern: Why Every Agent Needs a Dumb Backup</h2>
 
       <p>This might be the most important architectural decision in the entire project, and it's the one I'd recommend to anyone building agentic systems: <strong>build the deterministic fallback first</strong>.</p>
 
-      <p><a href="https://github.com/sumoseah/daily-digest-v2/blob/main/fallback.py" target="_blank"><code>fallback.py</code></a> is a complete, standalone pipeline that produces an acceptable digest without any agent involvement. It uses Claude Haiku directly (no Agent SDK), follows the same source list, and outputs a properly formatted HTML email. If the agent crashes, hangs, or produces garbage, the fallback runs automatically.</p>
+      <p><a href="https://github.com/linusseah/daily-digest-v2/blob/main/fallback.py" target="_blank"><code>fallback.py</code></a> is a complete, standalone pipeline that produces an acceptable digest without any agent involvement. It uses Claude Haiku directly (no Agent SDK), follows the same source list, and outputs a properly formatted HTML email. If the agent crashes, hangs, or produces garbage, the fallback runs automatically.</p>
 
-      <p>The <a href="https://github.com/sumoseah/daily-digest-v2/blob/main/.github/workflows/digest.yml" target="_blank">GitHub Actions workflow</a> implements this cleanly:</p>
+      <p>The <a href="https://github.com/linusseah/daily-digest-v2/blob/main/.github/workflows/digest.yml" target="_blank">GitHub Actions workflow</a> implements this cleanly:</p>
 
 <pre><code># .github/workflows/digest.yml
 - name: Run agent
@@ -216,7 +216,7 @@ content_rules:
 - name: Run fallback if agent failed
   if: steps.agent.outcome == 'failure'
   run: python fallback.py</code></pre>
-      <div class="code-source"><a href="https://github.com/sumoseah/daily-digest-v2/blob/main/.github/workflows/digest.yml" target="_blank">View workflow on GitHub →</a></div>
+      <div class="code-source"><a href="https://github.com/linusseah/daily-digest-v2/blob/main/.github/workflows/digest.yml" target="_blank">View workflow on GitHub →</a></div>
 
       <p>Building the fallback first had an unexpected benefit: it gave me confidence to experiment aggressively with the agent layer. I could try wild system prompt changes, swap models, add new tools — knowing that if anything broke, tomorrow's email would still arrive.</p>
 
@@ -240,7 +240,7 @@ import email
 import email.message  # explicit submodule import
 def _extract_body(msg: email.message.Message) -> str:
     ...</code></pre>
-      <div class="code-source"><a href="https://github.com/sumoseah/daily-digest-v2/blob/main/tools/fetch_imap.py" target="_blank">View fix in context on GitHub →</a></div>
+      <div class="code-source"><a href="https://github.com/linusseah/daily-digest-v2/blob/main/tools/fetch_imap.py" target="_blank">View fix in context on GitHub →</a></div>
 
       <h3 class="bug-header">Bug 2: TechCrunch's broken RSS feed</h3>
 
@@ -328,9 +328,9 @@ def _extract_body(msg: email.message.Message) -> str:
 
       <p>Both versions are open source:</p>
 
-      <p><strong>v1/v1.5:</strong> <a href="https://github.com/sumoseah/daily-digest" target="_blank">github.com/sumoseah/daily-digest</a> — The <code>main</code> branch is v1, the <code>development</code> branch is v1.5.</p>
+      <p><strong>v1/v1.5:</strong> <a href="https://github.com/linusseah/daily-digest" target="_blank">github.com/linusseah/daily-digest</a> — The <code>main</code> branch is v1, the <code>development</code> branch is v1.5.</p>
 
-      <p><strong>v2 (agentic):</strong> <a href="https://github.com/sumoseah/daily-digest-v2" target="_blank">github.com/sumoseah/daily-digest-v2</a> — The full agentic version with Claude Agent SDK, Exa search, and fallback pipeline.</p>
+      <p><strong>v2 (agentic):</strong> <a href="https://github.com/linusseah/daily-digest-v2" target="_blank">github.com/linusseah/daily-digest-v2</a> — The full agentic version with Claude Agent SDK, Exa search, and fallback pipeline.</p>
 
       <p>To get started, you'll need: a GitHub account (free), an <a href="https://console.anthropic.com/" target="_blank">Anthropic API key</a> ($5 minimum credit), a <a href="https://resend.com/" target="_blank">Resend</a> account (free tier), and optionally an <a href="https://exa.ai/" target="_blank">Exa</a> API key (free tier, 1,000 queries/month). Fork the repo, add your API keys to GitHub Secrets, edit <code>user_profile.yaml</code> with your interests and sources, and push. Your first digest will arrive the next morning.</p>
 
@@ -338,8 +338,8 @@ def _extract_body(msg: email.message.Message) -> str:
         <p><strong>About the author:</strong> I'm Linus Seah — MBA student at Kellogg (Northwestern), aspiring Solutions Architect, based in San Francisco. I write about building practical AI systems from the perspective of someone who's learning by doing, not just reading. This is part of my ongoing series, <em>Applied AI Thinking for Operators</em>.</p>
         <p>
           <a href="https://www.linkedin.com/in/linusseah/" target="_blank">LinkedIn</a> ·
-          <a href="https://github.com/sumoseah" target="_blank">GitHub</a> ·
-          <a href="https://github.com/sumoseah/daily-digest-v2" target="_blank">Project Repo</a>
+          <a href="https://github.com/linusseah" target="_blank">GitHub</a> ·
+          <a href="https://github.com/linusseah/daily-digest-v2" target="_blank">Project Repo</a>
         </p>
         <p style="font-size:12px; color: var(--text-muted); margin-top:24px;">
           <em>References:</em><br>
