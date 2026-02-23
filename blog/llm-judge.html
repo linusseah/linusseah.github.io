@@ -1,361 +1,178 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Building an LLM Judge to Evaluate My AI Digest Agent — Applied AI Thinking for Operators</title>
-<style>
-  * { box-sizing: border-box; }
-
-  body {
-    font-family: 'Georgia', 'Times New Roman', serif;
-    font-size: 18px;
-    line-height: 1.75;
-    color: #1a1a2e;
-    max-width: 720px;
-    margin: 0 auto;
-    padding: 40px 20px;
-    background: #fff;
-  }
-
-  .series-banner {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    font-size: 13px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: #6366f1;
-    margin-bottom: 8px;
-  }
-
-  h1 { font-size: 36px; line-height: 1.2; font-weight: 700; color: #0f172a; margin: 0 0 12px; }
-
-  .subtitle { font-size: 20px; color: #64748b; font-style: italic; margin-bottom: 8px; line-height: 1.4; }
-
-  .byline {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    font-size: 14px; color: #94a3b8; margin-bottom: 40px;
-  }
-  .byline a { color: #6366f1; text-decoration: none; }
-  .byline a:hover { text-decoration: underline; }
-
-  h2 {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    font-size: 24px; font-weight: 700; color: #0f172a;
-    margin: 48px 0 16px; padding-top: 16px; border-top: 1px solid #e2e8f0;
-  }
-
-  h3 {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    font-size: 18px; font-weight: 600; color: #334155; margin: 32px 0 12px;
-  }
-
-  p { margin: 0 0 20px; }
-  a { color: #6366f1; text-decoration: none; }
-  a:hover { text-decoration: underline; }
-
-  .callout {
-    background: #f8fafc; border-left: 4px solid #6366f1;
-    padding: 20px 24px; margin: 32px 0; font-size: 17px;
-    font-style: italic; color: #334155; border-radius: 0 8px 8px 0;
-  }
-  .callout strong { color: #1e293b; font-style: normal; }
-
-  .insight-box {
-    background: #f0fdf4; border: 1px solid #bbf7d0;
-    border-radius: 8px; padding: 20px 24px; margin: 32px 0; font-size: 16px;
-  }
-  .insight-box .label {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    font-size: 11px; font-weight: 700; text-transform: uppercase;
-    letter-spacing: 0.08em; color: #15803d; margin-bottom: 8px;
-  }
-
-  .warning-box {
-    background: #fffbeb; border: 1px solid #fde68a;
-    border-radius: 8px; padding: 20px 24px; margin: 32px 0; font-size: 16px;
-  }
-  .warning-box .label {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    font-size: 11px; font-weight: 700; text-transform: uppercase;
-    letter-spacing: 0.08em; color: #92400e; margin-bottom: 8px;
-  }
-
-  .figure { margin: 36px 0; text-align: center; }
-  .figure svg {
-    max-width: 100%; border-radius: 8px;
-    border: 1px solid #e2e8f0; box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-  }
-  .figure .caption {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    font-size: 13px; color: #94a3b8; margin-top: 10px; font-style: italic; text-align: left;
-  }
-
-  code {
-    font-family: 'SF Mono', 'Fira Code', monospace; font-size: 14px;
-    background: #f1f5f9; padding: 2px 6px; border-radius: 4px; color: #334155;
-  }
-
-  pre {
-    background: #1e293b; color: #e2e8f0; padding: 20px 24px;
-    border-radius: 8px; overflow-x: auto; font-size: 14px; line-height: 1.6; margin: 24px 0;
-  }
-  pre code { background: none; padding: 0; color: inherit; }
-
-  .code-source {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    font-size: 12px; color: #94a3b8; margin-top: -16px; margin-bottom: 24px;
-  }
-  .code-source a { color: #6366f1; font-size: 12px; }
-
-  table {
-    width: 100%; border-collapse: collapse; margin: 24px 0;
-    font-size: 15px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  }
-  th {
-    background: #f8fafc; padding: 12px 16px; text-align: left;
-    font-weight: 600; border-bottom: 2px solid #e2e8f0; color: #334155;
-  }
-  td { padding: 10px 16px; border-bottom: 1px solid #f1f5f9; vertical-align: top; color: #475569; }
-  tr:hover td { background: #fafbfc; }
-
-  .post-footer {
-    margin-top: 60px; padding-top: 24px; border-top: 2px solid #e2e8f0;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    font-size: 14px; color: #64748b;
-  }
-  .post-footer a { color: #6366f1; }
-
-  .tag {
-    display: inline-block; background: #f1f5f9; color: #475569;
-    font-size: 12px; padding: 4px 10px; border-radius: 12px; margin-right: 6px; margin-bottom: 6px;
-  }
-
-  .next-post {
-    background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px 24px; margin: 40px 0;
-  }
-  .next-post .label {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    font-size: 12px; font-weight: 700; text-transform: uppercase;
-    letter-spacing: 0.08em; color: #6366f1; margin-bottom: 6px;
-  }
-  .next-post .title { font-size: 18px; font-weight: 600; color: #0f172a; }
-
-  /* Score chip */
-  .sc {
-    display: inline-block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 10px; margin-left: 4px;
-  }
-  .s5 { background: #dcfce7; color: #15803d; }
-  .s4 { background: #dbeafe; color: #1d4ed8; }
-  .s3 { background: #fef9c3; color: #854d0e; }
-  .s2 { background: #fee2e2; color: #b91c1c; }
-
-  /* Dimension pill */
-  .dim-num {
-    display: inline-block; width: 24px; height: 24px; border-radius: 50%;
-    background: #6366f1; color: white;
-    font-family: -apple-system,sans-serif; font-size: 12px; font-weight: 700;
-    text-align: center; line-height: 24px; margin-right: 8px; vertical-align: middle;
-  }
-
-  /* Cost highlight */
-  .cost-highlight {
-    background: #faf5ff; border: 1px solid #e9d5ff;
-    border-radius: 8px; padding: 16px 20px; margin: 24px 0; text-align: center;
-  }
-  .cost-highlight .amount {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    font-size: 32px; font-weight: 700; color: #7c3aed;
-  }
-  .cost-highlight .context { font-size: 14px; color: #6b7280; }
-
-  /* Aside / footnote callout */
-  .aside {
-    background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px;
-    padding: 12px 16px; margin: 16px 0; font-size: 15px;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    color: #475569;
-  }
-  .aside .aside-label {
-    font-size: 10px; font-weight: 700; text-transform: uppercase;
-    letter-spacing: 0.08em; color: #94a3b8; margin-bottom: 4px;
-  }
-
-  /* Before / after comparison */
-  .compare-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 24px 0; }
-  .compare-card { border-radius: 8px; padding: 16px 18px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; }
-  .compare-card .cc-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
-  .compare-card .cc-value { font-size: 26px; font-weight: 700; margin-bottom: 4px; }
-  .compare-card.before { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
-  .compare-card.before .cc-label { color: #991b1b; }
-  .compare-card.after { background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; }
-  .compare-card.after .cc-label { color: #166534; }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Building an LLM Judge to Evaluate My AI Digest Agent — Linus Seah</title>
+  <meta name="description" content="Using a language model to score another language model's output sounds circular. Here is why it works, where it breaks down, and what it took to make it trustworthy.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
 
-<div class="series-banner">Applied AI Thinking for Operators · Evaluation Series · Part 2 of 2</div>
+  <nav>
+    <div class="container">
+      <a href="/" class="nav-name"><img src="/images/pp.jpg" alt="Linus Seah" class="nav-photo">Linus Seah</a>
+      <ul class="nav-links">
+        <li><a href="/about/">About</a></li>
+        <li><a href="/projects/">Projects</a></li>
+        <li><a href="/blog/" class="active">Articles</a></li>
+      </ul>
+    </div>
+  </nav>
 
-<h1>Building an LLM Judge to Evaluate My AI Digest Agent</h1>
+  <main class="container">
 
-<p class="subtitle">Using a language model to score another language model's output sounds circular. Here is why it works, where it breaks down, and what it took to make it trustworthy.</p>
+    <div class="post-header">
+      <div class="series">Applied AI Thinking for Operators · Evaluation Series · Part 2 of 2</div>
+      <h1>Building an LLM Judge to Evaluate My AI Digest Agent</h1>
+      <p class="post-subtitle">Using a language model to score another language model's output sounds circular. Here is why it works, where it breaks down, and what it took to make it trustworthy.</p>
+      <div class="post-meta">
+        By <a href="https://www.linkedin.com/in/linusseah/" target="_blank">Linus Seah</a> · February 2026 · 13 min read<br>
+        Code: <a href="https://github.com/sumoseah/daily-digest-v2" target="_blank">daily-digest-v2</a> · Judge: <a href="https://github.com/sumoseah/daily-digest-v2/blob/main/evals/judge_prompt.py" target="_blank">evals/judge_prompt.py</a> · Rubric: <a href="https://github.com/sumoseah/daily-digest-v2/blob/main/evals/rubric.md" target="_blank">evals/rubric.md</a><br>
+        <em>Read <a href="/blog/eval-overview.html">Part 1</a> first if you have not — it covers the broader landscape of AI evals and why they matter. This post is about applying those ideas to a specific agent I built.</em>
+      </div>
+    </div>
 
-<p class="byline">
-  By <a href="https://www.linkedin.com/in/linusseah/" target="_blank">Linus Seah</a> · February 2026 · 13 min read<br>
-  Code: <a href="https://github.com/sumoseah/daily-digest-v2" target="_blank">daily-digest-v2</a> · Judge: <a href="https://github.com/sumoseah/daily-digest-v2/blob/main/evals/judge_prompt.py" target="_blank">evals/judge_prompt.py</a> · Rubric: <a href="https://github.com/sumoseah/daily-digest-v2/blob/main/evals/rubric.md" target="_blank">evals/rubric.md</a><br>
-  <em>Read <a href="/blog/eval-overview.html">Part 1</a> first if you have not — it covers the broader landscape of AI evals and why they matter. This post is about applying those ideas to a specific agent I built.</em>
-</p>
+    <article class="prose">
 
-<p>After building <a href="https://linusseah.com/blog/what-agent-means/" target="_blank">my daily digest agent</a>, an AI that curates a personalised morning newsletter from my RSS feeds and email newsletters every day, the natural next question was: is it any good? Not "does it run without errors" — GitHub Actions tells me that. But does it actually produce a digest I would want to read? Is it capturing what I care about? Are the summaries genuinely useful or just prettier headlines?</p>
+      <p>After building <a href="https://linusseah.com/blog/what-agent-means/" target="_blank">my daily digest agent</a>, an AI that curates a personalised morning newsletter from my RSS feeds and email newsletters every day, the natural next question was: is it any good? Not "does it run without errors" — GitHub Actions tells me that. But does it actually produce a digest I would want to read? Is it capturing what I care about? Are the summaries genuinely useful or just prettier headlines?</p>
 
-<p>These are qualitative questions, and for those first few days I was answering them the way most people answer them: by reading my inbox and having a feeling. Some mornings the digest felt sharp. Other mornings it felt like a slightly rearranged version of my existing feeds. But "a feeling" does not compound. It does not tell you whether things are getting better or worse over time, which prompt changes helped, or which dimensions of quality are underperforming.</p>
+      <p>These are qualitative questions, and for those first few days I was answering them the way most people answer them: by reading my inbox and having a feeling. Some mornings the digest felt sharp. Other mornings it felt like a slightly rearranged version of my existing feeds. But "a feeling" does not compound. It does not tell you whether things are getting better or worse over time, which prompt changes helped, or which dimensions of quality are underperforming.</p>
 
-<p>This is the problem that evaluation frameworks exist to solve. And this post is about how I built one: specifically, a system where I use an LLM to judge the quality of another LLM's output, calibrated to my own taste.</p>
+      <p>This is the problem that evaluation frameworks exist to solve. And this post is about how I built one: specifically, a system where I use an LLM to judge the quality of another LLM's output, calibrated to my own taste.</p>
 
-<h2>Why Not Just Use Standard Benchmarks?</h2>
+      <h2>Why Not Just Use Standard Benchmarks?</h2>
 
-<p>The short answer: they were not built for this.</p>
+      <p>The short answer: they were not built for this.</p>
 
-<p>Standard benchmarks like MMLU or SWE-bench measure general model capabilities across standardised test sets. They are useful for choosing which model to use, but they tell you nothing about whether that model is performing your specific task well. My digest agent uses Claude Sonnet via the <a href="https://platform.claude.com/docs/en/agent-sdk/overview" target="_blank">Claude Agent SDK</a> — which means I can reasonably assume that Anthropic has already run the standard capability and safety evals on the underlying model. Layers 1 and 2 from Part 1 are covered by the SDK vendor.</p>
+      <p>Standard benchmarks like MMLU or SWE-bench measure general model capabilities across standardised test sets. They are useful for choosing which model to use, but they tell you nothing about whether that model is performing your specific task well. My digest agent uses Claude Sonnet via the <a href="https://platform.claude.com/docs/en/agent-sdk/overview" target="_blank">Claude Agent SDK</a> — which means I can reasonably assume that Anthropic has already run the standard capability and safety evals on the underlying model. Layers 1 and 2 from Part 1 are covered by the SDK vendor.</p>
 
-<p>What I need to evaluate is Layer 3: task-specific performance. Specifically: given my actual interest profile and source list, is the agent producing a digest that reflects my taste? No public benchmark measures that. I have to build it myself.</p>
+      <p>What I need to evaluate is Layer 3: task-specific performance. Specifically: given my actual interest profile and source list, is the agent producing a digest that reflects my taste? No public benchmark measures that. I have to build it myself.</p>
 
-<p>There are also general-purpose agent evaluation frameworks — GAIA, AgentBench, ToolBench — designed to measure whether an agent can complete multi-step tasks. But these measure general agentic capability, not the specific editorial judgment my digest requires. "Can the agent browse the web and synthesise information" is table stakes for any modern agent. What I care about is whether it synthesises the right information, with the right framing, from a sufficiently diverse set of sources.</p>
+      <p>There are also general-purpose agent evaluation frameworks — GAIA, AgentBench, ToolBench — designed to measure whether an agent can complete multi-step tasks. But these measure general agentic capability, not the specific editorial judgment my digest requires. "Can the agent browse the web and synthesise information" is table stakes for any modern agent. What I care about is whether it synthesises the right information, with the right framing, from a sufficiently diverse set of sources.</p>
 
-<h2>Designing the Rubric: What Does "Good" Actually Mean?</h2>
+      <h2>Designing the Rubric: What Does "Good" Actually Mean?</h2>
 
-<p>Before writing a single line of evaluation code, I had to answer the harder question: what does a good digest actually look like? Not vaguely — specifically enough that a language model could score it consistently.</p>
+      <p>Before writing a single line of evaluation code, I had to answer the harder question: what does a good digest actually look like? Not vaguely — specifically enough that a language model could score it consistently.</p>
 
-<p>I settled on eight dimensions, each scored 1 to 5 by the judge. They fall into three natural groups.</p>
+      <p>I settled on eight dimensions, each scored 1 to 5 by the judge. They fall into three natural groups.</p>
 
-<h3>Relevance (55% of score)</h3>
+      <h3>Relevance (55% of score)</h3>
 
-<p><span class="dim-num">1</span><strong>Interest Priority Adherence</strong> <em>(weight: 25%)</em> — My agent is configured with a <code>user_profile.yaml</code> file that explicitly categorises my interests as high, medium, or low priority. High priority: AI agents, LLM architecture, developer tools, robotics. Medium: VC funding, product launches. Low: general tech news, SF local events. A good digest should feel heavy on high-priority content. A 5/5 here means the digest reflects that hierarchy faithfully.</p>
+      <p><strong>1. Interest Priority Adherence</strong> <em>(weight: 25%)</em> — My agent is configured with a <code>user_profile.yaml</code> file that explicitly categorises my interests as high, medium, or low priority. High priority: AI agents, LLM architecture, developer tools, robotics. Medium: VC funding, product launches. Low: general tech news, SF local events. A good digest should feel heavy on high-priority content. A 5/5 here means the digest reflects that hierarchy faithfully.</p>
 
-<div class="aside">
-  <div class="aside-label">What is user_profile.yaml?</div>
-  This is the configuration file that defines my preferences for the agent. It is the ground truth for what "relevant" means in my context — a structured document listing sources, topic priorities, content filters, and editorial preferences. Think of it as the brief you would give a human researcher before asking them to curate your reading list.
-</div>
+      <p><strong>2. Summary Quality</strong> <em>(weight: 20%)</em> — The system prompt asks the agent to write summaries "like a knowledgeable friend who tells you only what actually matters." Do the summaries add genuine insight beyond the headline, or do they just rewrite the title? A 5/5 here means the summaries explain why a story matters — context, implication, or technical detail worth knowing.</p>
 
-<p><span class="dim-num">2</span><strong>Summary Quality</strong> <em>(weight: 20%)</em> — The system prompt asks the agent to write summaries "like a knowledgeable friend who tells you only what actually matters." Do the summaries add genuine insight beyond the headline, or do they just rewrite the title? A 5/5 here means the summaries explain why a story matters — context, implication, or technical detail worth knowing.</p>
+      <p><strong>3. Signal-to-Noise Ratio</strong> <em>(weight: 15%)</em> — Every item should earn its slot. The profile caps the digest at 20 items and sets a minimum relevance threshold. Does the agent curate ruthlessly, or does it pad with marginal content?</p>
 
-<p><span class="dim-num">3</span><strong>Signal-to-Noise Ratio</strong> <em>(weight: 15%)</em> — Every item should earn its slot. The profile caps the digest at 20 items and sets a minimum relevance threshold. Does the agent curate ruthlessly, or does it pad with marginal content?</p>
+      <h3>Curation (25% of score)</h3>
 
-<h3>Curation (25% of score)</h3>
+      <p><strong>4. Source Diversity and Tool Use</strong> <em>(weight: 15%)</em> — The agent has access to six configured sources plus web search via the Exa API. Over-relying on a single source — for instance, drawing 60% of items from one blog — suggests the agent is not using its full toolkit. Scored using explicit percentage thresholds (more on this when we get to calibration).</p>
 
-<p><span class="dim-num">4</span><strong>Source Diversity and Tool Use</strong> <em>(weight: 15%)</em> — The agent has access to six configured sources plus web search via the Exa API. Over-relying on a single source — for instance, drawing 60% of items from one blog — suggests the agent is not using its full toolkit. Scored using explicit percentage thresholds (more on this when we get to calibration).</p>
+      <p><strong>5. Theme Detection and Editorial Voice</strong> <em>(weight: 10%)</em> — The system prompt asks for a 2-to-3 sentence editorial intro identifying the day's connecting theme. Does the agent actually do this, and is the theme insightful or generic? A 5/5 reads like a knowledgeable friend's take — not "here is what happened" but "here is what you should notice."</p>
 
-<p><span class="dim-num">5</span><strong>Theme Detection and Editorial Voice</strong> <em>(weight: 10%)</em> — The system prompt asks for a 2-to-3 sentence editorial intro identifying the day's connecting theme. Does the agent actually do this, and is the theme insightful or generic? A 5/5 reads like a knowledgeable friend's take — not "here is what happened" but "here is what you should notice."</p>
+      <h3>Quality and Freshness (20% of score)</h3>
 
-<h3>Quality and Freshness (20% of score)</h3>
+      <p><strong>6. Content Freshness</strong> <em>(weight: 10%)</em> — My profile flags content as stale after 48 hours. Is the digest capturing the current moment, or recycling last week's news?</p>
 
-<p><span class="dim-num">6</span><strong>Content Freshness</strong> <em>(weight: 10%)</em> — My profile flags content as stale after 48 hours. Is the digest capturing the current moment, or recycling last week's news?</p>
+      <p><strong>7. Source Failure Recovery</strong> <em>(weight: 3%)</em> — When sources fail (documented in the agent's <code>run_log.json</code>), does the agent recover gracefully via web search, or does it leave gaps?</p>
 
-<p><span class="dim-num">7</span><strong>Source Failure Recovery</strong> <em>(weight: 3%)</em> — When sources fail (documented in the agent's <code>run_log.json</code>), does the agent recover gracefully via web search, or does it leave gaps?</p>
+      <p><strong>8. Novelty</strong> <em>(weight: 2%)</em> — Does the digest surface anything I am unlikely to have seen already? This dimension requires comparing today's digest to the past two days, which is handled by injecting recent digests into the judge prompt.</p>
 
-<div class="aside">
-  <div class="aside-label">What is run_log.json?</div>
-  Each time the agent runs, it writes a structured log of its execution: which sources were fetched, which failed, how many items were retrieved from each, and what the agent did when a source returned an error. This metadata is injected into the judge prompt alongside the digest itself, so the judge can evaluate recovery behavior with full context about what actually went wrong.
-</div>
+      <p>The weights reflect my actual priorities. Interest alignment and summary quality together account for 45% of the score, because if those two fail, nothing else saves the digest.</p>
 
-<p><span class="dim-num">8</span><strong>Novelty</strong> <em>(weight: 2%)</em> — Does the digest surface anything I am unlikely to have seen already? This dimension requires comparing today's digest to the past two days, which is handled by injecting recent digests into the judge prompt.</p>
+      <div class="figure">
+        <svg viewBox="0 0 760 410" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:#fff;">
+          <text x="380" y="24" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="14" font-weight="700" fill="#0f172a">Evaluation Framework: 8 Dimensions and Weights</text>
 
-<p>The weights reflect my actual priorities. Interest alignment and summary quality together account for 45% of the score, because if those two fail, nothing else saves the digest.</p>
+          <!-- RELEVANCE group header band -->
+          <rect x="0" y="36" width="760" height="20" fill="#eef2ff"/>
+          <text x="10" y="50" font-family="-apple-system,sans-serif" font-size="10" font-weight="700" fill="#6366f1" letter-spacing="0.06em">RELEVANCE</text>
+          <text x="750" y="50" text-anchor="end" font-family="-apple-system,sans-serif" font-size="10" fill="#6366f1">55% of total score</text>
 
-<!-- 8-DIMENSION BAR CHART -->
-<div class="figure">
-  <svg viewBox="0 0 760 410" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:#fff;">
-    <text x="380" y="24" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="14" font-weight="700" fill="#0f172a">Evaluation Framework: 8 Dimensions and Weights</text>
+          <!-- Grid lines (within plot area) -->
+          <line x1="300" y1="56" x2="300" y2="365" stroke="#f1f5f9" stroke-width="1"/>
+          <line x1="400" y1="56" x2="400" y2="365" stroke="#f1f5f9" stroke-width="1"/>
+          <line x1="500" y1="56" x2="500" y2="365" stroke="#f1f5f9" stroke-width="1"/>
+          <line x1="600" y1="56" x2="600" y2="365" stroke="#f1f5f9" stroke-width="1"/>
+          <line x1="700" y1="56" x2="700" y2="365" stroke="#f1f5f9" stroke-width="1"/>
 
-    <!-- Layout: labels x=0–195, bars x=200–700 (500px = 25%), percentages x=706+ -->
-    <!-- Scale: 1% = 20px. Group header bands span full width. -->
+          <!-- Row 1: Interest Priority Adherence 25% → 500px -->
+          <text x="193" y="78" text-anchor="end" font-family="-apple-system,sans-serif" font-size="11" fill="#334155">1. Interest Priority Adherence</text>
+          <rect x="200" y="61" width="500" height="24" rx="4" fill="#6366f1"/>
+          <text x="708" y="78" font-family="-apple-system,sans-serif" font-size="11" font-weight="700" fill="#4338ca">25%</text>
 
-    <!-- RELEVANCE group header band -->
-    <rect x="0" y="36" width="760" height="20" fill="#eef2ff"/>
-    <text x="10" y="50" font-family="-apple-system,sans-serif" font-size="10" font-weight="700" fill="#6366f1" letter-spacing="0.06em">RELEVANCE</text>
-    <text x="750" y="50" text-anchor="end" font-family="-apple-system,sans-serif" font-size="10" fill="#6366f1">55% of total score</text>
+          <!-- Row 2: Summary Quality 20% → 400px -->
+          <text x="193" y="111" text-anchor="end" font-family="-apple-system,sans-serif" font-size="11" fill="#334155">2. Summary Quality</text>
+          <rect x="200" y="94" width="400" height="24" rx="4" fill="#6366f1" opacity="0.8"/>
+          <text x="708" y="111" font-family="-apple-system,sans-serif" font-size="11" font-weight="700" fill="#4338ca">20%</text>
 
-    <!-- Grid lines (within plot area) -->
-    <line x1="300" y1="56" x2="300" y2="365" stroke="#f1f5f9" stroke-width="1"/>
-    <line x1="400" y1="56" x2="400" y2="365" stroke="#f1f5f9" stroke-width="1"/>
-    <line x1="500" y1="56" x2="500" y2="365" stroke="#f1f5f9" stroke-width="1"/>
-    <line x1="600" y1="56" x2="600" y2="365" stroke="#f1f5f9" stroke-width="1"/>
-    <line x1="700" y1="56" x2="700" y2="365" stroke="#f1f5f9" stroke-width="1"/>
+          <!-- Row 3: Signal-to-Noise Ratio 15% → 300px -->
+          <text x="193" y="144" text-anchor="end" font-family="-apple-system,sans-serif" font-size="11" fill="#334155">3. Signal-to-Noise Ratio</text>
+          <rect x="200" y="127" width="300" height="24" rx="4" fill="#6366f1" opacity="0.6"/>
+          <text x="708" y="144" font-family="-apple-system,sans-serif" font-size="11" font-weight="700" fill="#4338ca">15%</text>
 
-    <!-- Row 1: Interest Priority Adherence 25% → 500px -->
-    <text x="193" y="78" text-anchor="end" font-family="-apple-system,sans-serif" font-size="11" fill="#334155">1. Interest Priority Adherence</text>
-    <rect x="200" y="61" width="500" height="24" rx="4" fill="#6366f1"/>
-    <text x="708" y="78" font-family="-apple-system,sans-serif" font-size="11" font-weight="700" fill="#4338ca">25%</text>
+          <!-- CURATION group header band -->
+          <rect x="0" y="161" width="760" height="20" fill="#e0f2fe"/>
+          <text x="10" y="175" font-family="-apple-system,sans-serif" font-size="10" font-weight="700" fill="#0ea5e9" letter-spacing="0.06em">CURATION</text>
+          <text x="750" y="175" text-anchor="end" font-family="-apple-system,sans-serif" font-size="10" fill="#0ea5e9">25% of total score</text>
 
-    <!-- Row 2: Summary Quality 20% → 400px -->
-    <text x="193" y="111" text-anchor="end" font-family="-apple-system,sans-serif" font-size="11" fill="#334155">2. Summary Quality</text>
-    <rect x="200" y="94" width="400" height="24" rx="4" fill="#6366f1" opacity="0.8"/>
-    <text x="708" y="111" font-family="-apple-system,sans-serif" font-size="11" font-weight="700" fill="#4338ca">20%</text>
+          <!-- Row 4: Source Diversity & Tool Use 15% → 300px -->
+          <text x="193" y="200" text-anchor="end" font-family="-apple-system,sans-serif" font-size="11" fill="#334155">4. Source Diversity &amp; Tool Use</text>
+          <rect x="200" y="183" width="300" height="24" rx="4" fill="#0ea5e9"/>
+          <text x="708" y="200" font-family="-apple-system,sans-serif" font-size="11" font-weight="700" fill="#0369a1">15%</text>
 
-    <!-- Row 3: Signal-to-Noise Ratio 15% → 300px -->
-    <text x="193" y="144" text-anchor="end" font-family="-apple-system,sans-serif" font-size="11" fill="#334155">3. Signal-to-Noise Ratio</text>
-    <rect x="200" y="127" width="300" height="24" rx="4" fill="#6366f1" opacity="0.6"/>
-    <text x="708" y="144" font-family="-apple-system,sans-serif" font-size="11" font-weight="700" fill="#4338ca">15%</text>
+          <!-- Row 5: Theme & Editorial Voice 10% → 200px -->
+          <text x="193" y="233" text-anchor="end" font-family="-apple-system,sans-serif" font-size="11" fill="#334155">5. Theme &amp; Editorial Voice</text>
+          <rect x="200" y="216" width="200" height="24" rx="4" fill="#0ea5e9" opacity="0.7"/>
+          <text x="708" y="233" font-family="-apple-system,sans-serif" font-size="11" font-weight="700" fill="#0369a1">10%</text>
 
-    <!-- CURATION group header band -->
-    <rect x="0" y="161" width="760" height="20" fill="#e0f2fe"/>
-    <text x="10" y="175" font-family="-apple-system,sans-serif" font-size="10" font-weight="700" fill="#0ea5e9" letter-spacing="0.06em">CURATION</text>
-    <text x="750" y="175" text-anchor="end" font-family="-apple-system,sans-serif" font-size="10" fill="#0ea5e9">25% of total score</text>
+          <!-- QUALITY & FRESHNESS group header band -->
+          <rect x="0" y="250" width="760" height="20" fill="#d1fae5"/>
+          <text x="10" y="264" font-family="-apple-system,sans-serif" font-size="10" font-weight="700" fill="#10b981" letter-spacing="0.06em">QUALITY &amp; FRESHNESS</text>
+          <text x="750" y="264" text-anchor="end" font-family="-apple-system,sans-serif" font-size="10" fill="#10b981">20% of total score</text>
 
-    <!-- Row 4: Source Diversity & Tool Use 15% → 300px -->
-    <text x="193" y="200" text-anchor="end" font-family="-apple-system,sans-serif" font-size="11" fill="#334155">4. Source Diversity &amp; Tool Use</text>
-    <rect x="200" y="183" width="300" height="24" rx="4" fill="#0ea5e9"/>
-    <text x="708" y="200" font-family="-apple-system,sans-serif" font-size="11" font-weight="700" fill="#0369a1">15%</text>
+          <!-- Row 6: Content Freshness 10% → 200px -->
+          <text x="193" y="289" text-anchor="end" font-family="-apple-system,sans-serif" font-size="11" fill="#334155">6. Content Freshness</text>
+          <rect x="200" y="272" width="200" height="24" rx="4" fill="#10b981"/>
+          <text x="708" y="289" font-family="-apple-system,sans-serif" font-size="11" font-weight="700" fill="#065f46">10%</text>
 
-    <!-- Row 5: Theme & Editorial Voice 10% → 200px -->
-    <text x="193" y="233" text-anchor="end" font-family="-apple-system,sans-serif" font-size="11" fill="#334155">5. Theme &amp; Editorial Voice</text>
-    <rect x="200" y="216" width="200" height="24" rx="4" fill="#0ea5e9" opacity="0.7"/>
-    <text x="708" y="233" font-family="-apple-system,sans-serif" font-size="11" font-weight="700" fill="#0369a1">10%</text>
+          <!-- Row 7: Source Failure Recovery 3% → 60px -->
+          <text x="193" y="322" text-anchor="end" font-family="-apple-system,sans-serif" font-size="11" fill="#334155">7. Source Failure Recovery</text>
+          <rect x="200" y="305" width="60" height="24" rx="4" fill="#10b981" opacity="0.65"/>
+          <text x="708" y="322" font-family="-apple-system,sans-serif" font-size="11" font-weight="700" fill="#065f46">3%</text>
 
-    <!-- QUALITY & FRESHNESS group header band -->
-    <rect x="0" y="250" width="760" height="20" fill="#d1fae5"/>
-    <text x="10" y="264" font-family="-apple-system,sans-serif" font-size="10" font-weight="700" fill="#10b981" letter-spacing="0.06em">QUALITY &amp; FRESHNESS</text>
-    <text x="750" y="264" text-anchor="end" font-family="-apple-system,sans-serif" font-size="10" fill="#10b981">20% of total score</text>
+          <!-- Row 8: Novelty 2% → 40px -->
+          <text x="193" y="355" text-anchor="end" font-family="-apple-system,sans-serif" font-size="11" fill="#334155">8. Novelty</text>
+          <rect x="200" y="338" width="40" height="24" rx="4" fill="#10b981" opacity="0.4"/>
+          <text x="708" y="355" font-family="-apple-system,sans-serif" font-size="11" font-weight="700" fill="#065f46">2%</text>
 
-    <!-- Row 6: Content Freshness 10% → 200px -->
-    <text x="193" y="289" text-anchor="end" font-family="-apple-system,sans-serif" font-size="11" fill="#334155">6. Content Freshness</text>
-    <rect x="200" y="272" width="200" height="24" rx="4" fill="#10b981"/>
-    <text x="708" y="289" font-family="-apple-system,sans-serif" font-size="11" font-weight="700" fill="#065f46">10%</text>
+          <!-- X axis line -->
+          <line x1="200" y1="368" x2="700" y2="368" stroke="#e2e8f0" stroke-width="1.5"/>
 
-    <!-- Row 7: Source Failure Recovery 3% → 60px -->
-    <text x="193" y="322" text-anchor="end" font-family="-apple-system,sans-serif" font-size="11" fill="#334155">7. Source Failure Recovery</text>
-    <rect x="200" y="305" width="60" height="24" rx="4" fill="#10b981" opacity="0.65"/>
-    <text x="708" y="322" font-family="-apple-system,sans-serif" font-size="11" font-weight="700" fill="#065f46">3%</text>
+          <!-- X axis labels -->
+          <text x="200" y="383" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#94a3b8">0%</text>
+          <text x="300" y="383" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#94a3b8">5%</text>
+          <text x="400" y="383" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#94a3b8">10%</text>
+          <text x="500" y="383" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#94a3b8">15%</text>
+          <text x="600" y="383" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#94a3b8">20%</text>
+          <text x="700" y="383" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#94a3b8">25%</text>
+        </svg>
+        <div class="caption">The eight evaluation dimensions, grouped by category. Bar length is proportional to weight. Dimensions 7 and 8 have intentionally small weights — failure recovery and novelty are real quality signals, but they rarely make or break a digest the way relevance and summary quality do.</div>
+      </div>
 
-    <!-- Row 8: Novelty 2% → 40px -->
-    <text x="193" y="355" text-anchor="end" font-family="-apple-system,sans-serif" font-size="11" fill="#334155">8. Novelty</text>
-    <rect x="200" y="338" width="40" height="24" rx="4" fill="#10b981" opacity="0.4"/>
-    <text x="708" y="355" font-family="-apple-system,sans-serif" font-size="11" font-weight="700" fill="#065f46">2%</text>
+      <h2>LLM as Judge</h2>
 
-    <!-- X axis line -->
-    <line x1="200" y1="368" x2="700" y2="368" stroke="#e2e8f0" stroke-width="1.5"/>
+      <p>The core idea is straightforward: instead of me reading every digest and scoring it, I send each digest to a stronger LLM — <a href="https://www.anthropic.com/claude/opus" target="_blank">Claude Opus 4.5</a>, one tier above the <a href="https://www.anthropic.com/claude/sonnet" target="_blank">Claude Sonnet 4.5</a> model that generates the digest — along with my user profile, the agent's system prompt, and the rubric, and ask it to score across all eight dimensions with a written explanation for each.</p>
 
-    <!-- X axis labels -->
-    <text x="200" y="383" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#94a3b8">0%</text>
-    <text x="300" y="383" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#94a3b8">5%</text>
-    <text x="400" y="383" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#94a3b8">10%</text>
-    <text x="500" y="383" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#94a3b8">15%</text>
-    <text x="600" y="383" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#94a3b8">20%</text>
-    <text x="700" y="383" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#94a3b8">25%</text>
-  </svg>
-  <div class="caption">The eight evaluation dimensions, grouped by category. Bar length is proportional to weight. Dimensions 7 and 8 have intentionally small weights — failure recovery and novelty are real quality signals, but they rarely make or break a digest the way relevance and summary quality do.</div>
-</div>
+      <p>Using a stronger model to judge matters. Asking the same model that generated the digest to evaluate it introduces self-serving bias: the model is unlikely to be as hard on its own output as an independent evaluator would be. Opus has stronger reasoning and is more calibrated when asked to apply a rubric strictly. This matches the approach used in the <a href="https://arxiv.org/abs/2306.05685" target="_blank">MT-Bench paper</a> (Zheng et al., 2023), which popularized LLM-as-a-judge methodology and specifically recommended using a more capable model for evaluation.</p>
 
-<h2>LLM as Judge</h2>
+      <p>The judge prompt has four sections: my user profile as the ground-truth baseline for what the digest should achieve; the agent's system prompt as context for what it was told to do; run metadata from the agent's log file (sources fetched, sources that failed, items included before filtering); and the full digest text to evaluate. The judge returns a structured JSON response: a score and two-to-three sentence explanation for each dimension, an overall weighted score, the single biggest issue, and the single biggest strength.</p>
 
-<p>The core idea is straightforward: instead of me reading every digest and scoring it, I send each digest to a stronger LLM — <a href="https://www.anthropic.com/claude/opus" target="_blank">Claude Opus 4.5</a>, one tier above the <a href="https://www.anthropic.com/claude/sonnet" target="_blank">Claude Sonnet 4.5</a> model that generates the digest — along with my user profile, the agent's system prompt, and the rubric, and ask it to score across all eight dimensions with a written explanation for each.</p>
-
-<p>Using a stronger model to judge matters. Asking the same model that generated the digest to evaluate it introduces self-serving bias: the model is unlikely to be as hard on its own output as an independent evaluator would be. Opus has stronger reasoning and is more calibrated when asked to apply a rubric strictly. This matches the approach used in the <a href="https://arxiv.org/abs/2306.05685" target="_blank">MT-Bench paper</a> (Zheng et al., 2023), which popularized LLM-as-a-judge methodology and specifically recommended using a more capable model for evaluation.</p>
-
-<p>The judge prompt has four sections: my user profile as the ground-truth baseline for what the digest should achieve; the agent's system prompt as context for what it was told to do; run metadata from the agent's log file (sources fetched, sources that failed, items included before filtering); and the full digest text to evaluate. The judge returns a structured JSON response: a score and two-to-three sentence explanation for each dimension, an overall weighted score, the single biggest issue, and the single biggest strength.</p>
-
-<p>Here is an excerpt from a real judge output on one of my February digests:</p>
+      <p>Here is an excerpt from a real judge output on one of my February digests:</p>
 
 <pre><code>{
   "interest_priority_adherence": {
@@ -379,129 +196,128 @@
   }
 }</code></pre>
 
-<p>The explanations are the most valuable part. They turn a number into something actionable.</p>
+      <p>The explanations are the most valuable part. They turn a number into something actionable.</p>
 
-<!-- PIPELINE FLOWCHART -->
-<div class="figure">
-  <svg viewBox="0 0 700 480" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:#fff;">
-    <defs>
-      <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
-        <path d="M0,0 L0,6 L8,3 z" fill="#94a3b8"/>
-      </marker>
-      <marker id="arr-red" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
-        <path d="M0,0 L0,6 L8,3 z" fill="#f59e0b"/>
-      </marker>
-    </defs>
+      <div class="figure">
+        <svg viewBox="0 0 700 480" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:#fff;">
+          <defs>
+            <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+              <path d="M0,0 L0,6 L8,3 z" fill="#94a3b8"/>
+            </marker>
+            <marker id="arr-red" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+              <path d="M0,0 L0,6 L8,3 z" fill="#f59e0b"/>
+            </marker>
+          </defs>
 
-    <text x="350" y="24" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="14" font-weight="700" fill="#0f172a">LLM-as-Judge Evaluation Pipeline (with Calibration)</text>
+          <text x="350" y="24" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="14" font-weight="700" fill="#0f172a">LLM-as-Judge Evaluation Pipeline (with Calibration)</text>
 
-    <!-- Row 1: Agent run -->
-    <rect x="60" y="40" width="160" height="50" rx="8" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5"/>
-    <text x="140" y="62" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="12" font-weight="600" fill="#334155">Agent runs daily</text>
-    <text x="140" y="78" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#94a3b8">Claude Sonnet 4.5</text>
+          <!-- Row 1: Agent run -->
+          <rect x="60" y="40" width="160" height="50" rx="8" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5"/>
+          <text x="140" y="62" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="12" font-weight="600" fill="#334155">Agent runs daily</text>
+          <text x="140" y="78" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#94a3b8">Claude Sonnet 4.5</text>
 
-    <line x1="220" y1="65" x2="268" y2="65" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>
+          <line x1="220" y1="65" x2="268" y2="65" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>
 
-    <rect x="268" y="40" width="160" height="50" rx="8" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5"/>
-    <text x="348" y="62" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="12" font-weight="600" fill="#334155">Digest + run_log.json</text>
-    <text x="348" y="78" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#94a3b8">archived to GitHub</text>
+          <rect x="268" y="40" width="160" height="50" rx="8" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5"/>
+          <text x="348" y="62" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="12" font-weight="600" fill="#334155">Digest + run_log.json</text>
+          <text x="348" y="78" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#94a3b8">archived to GitHub</text>
 
-    <line x1="428" y1="65" x2="478" y2="65" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>
+          <line x1="428" y1="65" x2="478" y2="65" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>
 
-    <rect x="478" y="40" width="160" height="50" rx="8" fill="#6366f1"/>
-    <text x="558" y="62" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="12" font-weight="700" fill="#fff">Judge prompt built</text>
-    <text x="558" y="78" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#c7d2fe">rubric + profile + digest</text>
+          <rect x="478" y="40" width="160" height="50" rx="8" fill="#6366f1"/>
+          <text x="558" y="62" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="12" font-weight="700" fill="#fff">Judge prompt built</text>
+          <text x="558" y="78" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#c7d2fe">rubric + profile + digest</text>
 
-    <!-- Row 2: Judge runs, outputs JSON -->
-    <line x1="558" y1="90" x2="558" y2="130" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>
+          <!-- Row 2: Judge runs, outputs JSON -->
+          <line x1="558" y1="90" x2="558" y2="130" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>
 
-    <rect x="478" y="130" width="160" height="50" rx="8" fill="#0f172a"/>
-    <text x="558" y="152" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="12" font-weight="700" fill="#fff">Claude Opus 4.5</text>
-    <text x="558" y="168" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#94a3b8">Judge model (~$0.10)</text>
+          <rect x="478" y="130" width="160" height="50" rx="8" fill="#0f172a"/>
+          <text x="558" y="152" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="12" font-weight="700" fill="#fff">Claude Opus 4.5</text>
+          <text x="558" y="168" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#94a3b8">Judge model (~$0.10)</text>
 
-    <line x1="558" y1="180" x2="558" y2="218" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>
+          <line x1="558" y1="180" x2="558" y2="218" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>
 
-    <rect x="478" y="218" width="160" height="50" rx="8" fill="#f0fdf4" stroke="#bbf7d0" stroke-width="1.5"/>
-    <text x="558" y="240" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="12" font-weight="600" fill="#15803d">JSON scores output</text>
-    <text x="558" y="256" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#4ade80">8 dimensions + reasoning</text>
+          <rect x="478" y="218" width="160" height="50" rx="8" fill="#f0fdf4" stroke="#bbf7d0" stroke-width="1.5"/>
+          <text x="558" y="240" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="12" font-weight="600" fill="#15803d">JSON scores output</text>
+          <text x="558" y="256" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#4ade80">8 dimensions + reasoning</text>
 
-    <line x1="558" y1="268" x2="558" y2="306" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>
+          <line x1="558" y1="268" x2="558" y2="306" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>
 
-    <rect x="478" y="306" width="160" height="50" rx="8" fill="#f0fdf4" stroke="#bbf7d0" stroke-width="1.5"/>
-    <text x="558" y="328" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="12" font-weight="600" fill="#15803d">scores.csv updated</text>
-    <text x="558" y="344" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#4ade80">Streamlit dashboard</text>
+          <rect x="478" y="306" width="160" height="50" rx="8" fill="#f0fdf4" stroke="#bbf7d0" stroke-width="1.5"/>
+          <text x="558" y="328" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="12" font-weight="600" fill="#15803d">scores.csv updated</text>
+          <text x="558" y="344" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#4ade80">Streamlit dashboard</text>
 
-    <!-- CALIBRATION BRANCH (left side) — highlighted in amber -->
-    <!-- Manual rating box -->
-    <rect x="60" y="130" width="160" height="50" rx="8" fill="#fffbeb" stroke="#fde68a" stroke-width="2"/>
-    <text x="140" y="150" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="11" font-weight="700" fill="#92400e">Manual rating</text>
-    <text x="140" y="166" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#b45309">21 digests scored by human</text>
+          <!-- CALIBRATION BRANCH (left side) — highlighted in amber -->
+          <!-- Manual rating box -->
+          <rect x="60" y="130" width="160" height="50" rx="8" fill="#fffbeb" stroke="#fde68a" stroke-width="2"/>
+          <text x="140" y="150" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="11" font-weight="700" fill="#92400e">Manual rating</text>
+          <text x="140" y="166" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#b45309">21 digests scored by human</text>
 
-    <!-- Pearson correlation box -->
-    <rect x="60" y="218" width="160" height="50" rx="8" fill="#fffbeb" stroke="#fde68a" stroke-width="2"/>
-    <text x="140" y="238" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="11" font-weight="700" fill="#92400e">Pearson correlation</text>
-    <text x="140" y="254" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#b45309">human vs. judge (r = ?)</text>
+          <!-- Pearson correlation box -->
+          <rect x="60" y="218" width="160" height="50" rx="8" fill="#fffbeb" stroke="#fde68a" stroke-width="2"/>
+          <text x="140" y="238" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="11" font-weight="700" fill="#92400e">Pearson correlation</text>
+          <text x="140" y="254" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#b45309">human vs. judge (r = ?)</text>
 
-    <!-- Rubric refinement box -->
-    <rect x="60" y="306" width="160" height="50" rx="8" fill="#fffbeb" stroke="#fde68a" stroke-width="2"/>
-    <text x="140" y="326" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="11" font-weight="700" fill="#92400e">Rubric refinement</text>
-    <text x="140" y="342" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#b45309">if r &lt; 0.60 per dimension</text>
+          <!-- Rubric refinement box -->
+          <rect x="60" y="306" width="160" height="50" rx="8" fill="#fffbeb" stroke="#fde68a" stroke-width="2"/>
+          <text x="140" y="326" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="11" font-weight="700" fill="#92400e">Rubric refinement</text>
+          <text x="140" y="342" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#b45309">if r &lt; 0.60 per dimension</text>
 
-    <!-- Calibration label -->
-    <rect x="52" y="110" width="176" height="16" rx="4" fill="#fef3c7"/>
-    <text x="140" y="122" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" font-weight="700" fill="#92400e">CALIBRATION LAYER (one-time setup)</text>
+          <!-- Calibration label -->
+          <rect x="52" y="110" width="176" height="16" rx="4" fill="#fef3c7"/>
+          <text x="140" y="122" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" font-weight="700" fill="#92400e">CALIBRATION LAYER (one-time setup)</text>
 
-    <!-- Arrows in calibration column -->
-    <line x1="140" y1="180" x2="140" y2="218" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#arr-red)"/>
-    <line x1="140" y1="268" x2="140" y2="306" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#arr-red)"/>
+          <!-- Arrows in calibration column -->
+          <line x1="140" y1="180" x2="140" y2="218" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#arr-red)"/>
+          <line x1="140" y1="268" x2="140" y2="306" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#arr-red)"/>
 
-    <!-- Loop back arrow: if r < threshold, refine and retry -->
-    <path d="M60,331 Q10,331 10,243 Q10,155 60,155" stroke="#f59e0b" stroke-width="1.5" fill="none" stroke-dasharray="5 3" marker-end="url(#arr-red)"/>
-    <text x="6" y="246" font-family="-apple-system,sans-serif" font-size="9" fill="#92400e" transform="rotate(-90,6,243)">refine and re-score</text>
+          <!-- Loop back arrow: if r < threshold, refine and retry -->
+          <path d="M60,331 Q10,331 10,243 Q10,155 60,155" stroke="#f59e0b" stroke-width="1.5" fill="none" stroke-dasharray="5 3" marker-end="url(#arr-red)"/>
+          <text x="6" y="246" font-family="-apple-system,sans-serif" font-size="9" fill="#92400e" transform="rotate(-90,6,243)">refine and re-score</text>
 
-    <!-- Arrow from manual rating to pearson (connects to judge output too) -->
-    <line x1="220" y1="243" x2="478" y2="243" stroke="#f59e0b" stroke-width="1" stroke-dasharray="4 3"/>
-    <text x="349" y="238" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#92400e">compare scores</text>
+          <!-- Arrow from manual rating to pearson (connects to judge output too) -->
+          <line x1="220" y1="243" x2="478" y2="243" stroke="#f59e0b" stroke-width="1" stroke-dasharray="4 3"/>
+          <text x="349" y="238" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#92400e">compare scores</text>
 
-    <!-- r = 0.72 achieved label -->
-    <rect x="60" y="390" width="160" height="40" rx="8" fill="#f0fdf4" stroke="#bbf7d0" stroke-width="1.5"/>
-    <text x="140" y="408" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="11" font-weight="700" fill="#15803d">r = 0.72 achieved</text>
-    <text x="140" y="422" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#4ade80">Judge is trusted and locked</text>
-    <line x1="140" y1="356" x2="140" y2="390" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#arr-red)"/>
+          <!-- r = 0.72 achieved label -->
+          <rect x="60" y="390" width="160" height="40" rx="8" fill="#f0fdf4" stroke="#bbf7d0" stroke-width="1.5"/>
+          <text x="140" y="408" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="11" font-weight="700" fill="#15803d">r = 0.72 achieved</text>
+          <text x="140" y="422" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#4ade80">Judge is trusted and locked</text>
+          <line x1="140" y1="356" x2="140" y2="390" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#arr-red)"/>
 
-    <!-- Arrow from locked judge to daily pipeline -->
-    <line x1="220" y1="410" x2="430" y2="155" stroke="#6366f1" stroke-width="1.5" stroke-dasharray="5 3" marker-end="url(#arr)"/>
-    <text x="340" y="310" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#6366f1">calibrated rubric</text>
-    <text x="340" y="322" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#6366f1">enters daily pipeline</text>
+          <!-- Arrow from locked judge to daily pipeline -->
+          <line x1="220" y1="410" x2="430" y2="155" stroke="#6366f1" stroke-width="1.5" stroke-dasharray="5 3" marker-end="url(#arr)"/>
+          <text x="340" y="310" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#6366f1">calibrated rubric</text>
+          <text x="340" y="322" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#6366f1">enters daily pipeline</text>
 
-    <!-- Footer note -->
-    <text x="350" y="465" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#94a3b8">Calibration is one-time setup. Daily pipeline runs automatically via GitHub Actions.</text>
-  </svg>
-  <div class="caption">The full pipeline. The amber calibration layer (left) is a one-time setup process: manually rate a set of digests, compare your scores to the judge's using Pearson correlation, refine the rubric wherever correlation is below threshold, and repeat until the judge's judgment aligns with yours. Once calibrated (r = 0.72), the rubric is locked and the judge runs automatically every day.</div>
-</div>
+          <!-- Footer note -->
+          <text x="350" y="465" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#94a3b8">Calibration is one-time setup. Daily pipeline runs automatically via GitHub Actions.</text>
+        </svg>
+        <div class="caption">The full pipeline. The amber calibration layer (left) is a one-time setup process: manually rate a set of digests, compare your scores to the judge's using Pearson correlation, refine the rubric wherever correlation is below threshold, and repeat until the judge's judgment aligns with yours. Once calibrated (r = 0.72), the rubric is locked and the judge runs automatically every day.</div>
+      </div>
 
-<h2>The Calibration Layer: Making the Judge Agree with You</h2>
+      <h2>The Calibration Layer: Making the Judge Agree with You</h2>
 
-<p>Writing a rubric and running the judge is not enough. The judge has its own interpretation of what "3 out of 5 on Source Diversity" means, and that interpretation may not match yours. Before you trust the scores, you need to verify that the judge is scoring the way you would.</p>
+      <p>Writing a rubric and running the judge is not enough. The judge has its own interpretation of what "3 out of 5 on Source Diversity" means, and that interpretation may not match yours. Before you trust the scores, you need to verify that the judge is scoring the way you would.</p>
 
-<p>This is the calibration layer. The process works like this: manually rate a set of past digests yourself using the same rubric, then compare your scores to the judge's scores using Pearson correlation. Pearson correlation (r) measures how closely two sets of numbers move together, on a scale from -1 (perfect inverse) to +1 (perfect agreement). If r is 0.60 or above on a dimension, the judge is interpreting that dimension similarly to you. If not, the rubric needs refinement.</p>
+      <p>This is the calibration layer. The process works like this: manually rate a set of past digests yourself using the same rubric, then compare your scores to the judge's scores using Pearson correlation. Pearson correlation (r) measures how closely two sets of numbers move together, on a scale from -1 (perfect inverse) to +1 (perfect agreement). If r is 0.60 or above on a dimension, the judge is interpreting that dimension similarly to you. If not, the rubric needs refinement.</p>
 
-<p>I rated 21 digests manually: five real daily digests from February 2026 and sixteen synthetic test digests generated in early January. The January test digests were deliberately included because they span a wider quality range than the real ones — some are good, some have obvious problems. High-variance data is what calibration needs. If every digest were a 4.5 out of 5, correlation measurements would be meaningless.</p>
+      <p>I rated 21 digests manually: five real daily digests from February 2026 and sixteen synthetic test digests generated in early January. The January test digests were deliberately included because they span a wider quality range than the real ones — some are good, some have obvious problems. High-variance data is what calibration needs. If every digest were a 4.5 out of 5, correlation measurements would be meaningless.</p>
 
-<p>The first calibration run was humbling.</p>
+      <p>The first calibration run was humbling.</p>
 
-<h3>Source Diversity: A Systematic Misalignment</h3>
+      <h3>Source Diversity: A Systematic Misalignment</h3>
 
-<p>The most flagrant gap was Source Diversity. On digests where I rated 2 out of 5, the judge was giving 4 out of 5. The root cause was vague rubric language. My original rubric said things like "one source may contribute up to 40% of items" for a 4 out of 5 — but "up to 40%" is ambiguous. Does 38% count? What about 42%? The judge interpreted this loosely. I interpreted it strictly.</p>
+      <p>The most flagrant gap was Source Diversity. On digests where I rated 2 out of 5, the judge was giving 4 out of 5. The root cause was vague rubric language. My original rubric said things like "one source may contribute up to 40% of items" for a 4 out of 5 — but "up to 40%" is ambiguous. Does 38% count? What about 42%? The judge interpreted this loosely. I interpreted it strictly.</p>
 
-<div class="warning-box">
-  <div class="label">Calibration Failure — January Digests</div>
-  <strong>Human rating:</strong> <span class="sc s2">2/5</span> — "80% of the content was just taken from Simon Willison. This is not diverse."<br><br>
-  <strong>Judge rating:</strong> <span class="sc s4">4/5</span> — "Content draws from multiple sources including a prominent technical blog, product news, and mainstream tech media. Reasonable diversity for a technical digest."<br><br>
-  <strong>Delta:</strong> 2 full points on a 5-point scale. The judge was not wrong to read "multiple sources" as satisfied — I just had never specified that the distribution mattered, not just the count.
-</div>
+      <div class="warning-box">
+        <div class="label">Calibration Failure — January Digests</div>
+        <p style="margin:0;"><strong>Human rating:</strong> 2/5 — "80% of the content was just taken from Simon Willison. This is not diverse."<br><br>
+        <strong>Judge rating:</strong> 4/5 — "Content draws from multiple sources including a prominent technical blog, product news, and mainstream tech media. Reasonable diversity for a technical digest."<br><br>
+        <strong>Delta:</strong> 2 full points on a 5-point scale. The judge was not wrong to read "multiple sources" as satisfied — I just had never specified that the distribution mattered, not just the count.</p>
+      </div>
 
-<p>The fix was to replace every qualitative description in the Source Diversity rubric with an exact percentage threshold:</p>
+      <p>The fix was to replace every qualitative description in the Source Diversity rubric with an exact percentage threshold:</p>
 
 <pre><code>IMPORTANT: Calculate the exact percentage of items from the most-used source.
 Use the thresholds below strictly - do not round or approximate.
@@ -513,152 +329,165 @@ Use the thresholds below strictly - do not round or approximate.
 | 3     | 41-60%    |
 | 2     | 61-80%    |
 | 1     | &gt;=81%     |</code></pre>
-<div class="code-source">From <a href="https://github.com/sumoseah/daily-digest-v2/blob/main/evals/rubric.md" target="_blank">evals/rubric.md</a> — Source Diversity dimension, after calibration.</div>
 
-<p>After this change, digests where Simon Willison contributed 53 to 59% of items correctly scored 3 out of 5, not 4 out of 5. The lesson is that for any objective dimension, you need exact numbers. "Noticeable clustering" is not a scoring criterion — it is an invitation for the judge to make a subjective call that may not match yours.</p>
+      <p>After this change, digests where Simon Willison contributed 53 to 59% of items correctly scored 3 out of 5, not 4 out of 5. The lesson is that for any objective dimension, you need exact numbers. "Noticeable clustering" is not a scoring criterion — it is an invitation for the judge to make a subjective call that may not match yours.</p>
 
-<h3>Novelty: The Judge Needs Memory</h3>
+      <h3>Novelty: The Judge Needs Memory</h3>
 
-<p>The Novelty dimension had a different problem. The rubric was fine — it explicitly mentioned checking for repeated stories across consecutive days. The judge just did not have the information to apply it. Without access to yesterday's digest, the judge could only evaluate novelty relative to the single digest in front of it. A story that appeared yesterday looks completely fresh if yesterday's digest is not in context.</p>
+      <p>The Novelty dimension had a different problem. The rubric was fine — it explicitly mentioned checking for repeated stories across consecutive days. The judge just did not have the information to apply it. Without access to yesterday's digest, the judge could only evaluate novelty relative to the single digest in front of it. A story that appeared yesterday looks completely fresh if yesterday's digest is not in context.</p>
 
-<p>The fix was to inject the past two days of digests into the judge prompt with an explicit instruction: check for repeated stories and apply a one-point penalty per repeated item. The <code>get_recent_digests()</code> function handles retrieval from the <code>digests/</code> archive. This is a general principle worth noting: if a dimension of your rubric requires context the judge does not have, it cannot score that dimension correctly regardless of how good the rubric language is.</p>
+      <p>The fix was to inject the past two days of digests into the judge prompt with an explicit instruction: check for repeated stories and apply a one-point penalty per repeated item. The <code>get_recent_digests()</code> function handles retrieval from the <code>digests/</code> archive. This is a general principle worth noting: if a dimension of your rubric requires context the judge does not have, it cannot score that dimension correctly regardless of how good the rubric language is.</p>
 
-<h3>The Result: Three Rounds, Three Days</h3>
+      <h3>The Result: Three Rounds, Three Days</h3>
 
-<p>Three rounds of rubric refinement over three days. After each round, I re-scored the most problematic digests and checked whether the delta closed. After the final round, overall Pearson correlation improved from r = 0.48 to r = 0.72. The Source Diversity dimension went from r = 0.21 to r = 0.65. The rubric was then locked, and the judge was trusted.</p>
+      <p>Three rounds of rubric refinement over three days. After each round, I re-scored the most problematic digests and checked whether the delta closed. After the final round, overall Pearson correlation improved from r = 0.48 to r = 0.72. The Source Diversity dimension went from r = 0.21 to r = 0.65. The rubric was then locked, and the judge was trusted.</p>
 
-<div class="compare-row">
-  <div class="compare-card before">
-    <div class="cc-label">Before Calibration</div>
-    <div class="cc-value">r = 0.48</div>
-    <div>Overall human-judge correlation<br>Source Diversity: r = 0.21</div>
-  </div>
-  <div class="compare-card after">
-    <div class="cc-label">After Calibration</div>
-    <div class="cc-value">r = 0.72</div>
-    <div>Overall human-judge correlation<br>Source Diversity: r = 0.65</div>
-  </div>
-</div>
+      <p>The total setup cost — generating test digests, running calibration scoring, and iterating through rubric refinement — was roughly $3.24 in API credits and about eight hours of work across three days. For a simple personal agent with one output type, that is the real cost of "just building an eval." It is not enormous, but it is not trivial either. It also gives you a sense of why evaluation infrastructure at scale is a serious engineering investment.</p>
 
-<p>The total setup cost — generating test digests, running calibration scoring, and iterating through rubric refinement — was roughly $3.24 in API credits and about eight hours of work across three days. For a simple personal agent with one output type, that is the real cost of "just building an eval." It is not enormous, but it is not trivial either. It also gives you a sense of why evaluation infrastructure at scale is a serious engineering investment.</p>
+      <h2>What the Scores Actually Revealed</h2>
 
-<h2>What the Scores Actually Revealed</h2>
+      <p>Once the judge was calibrated, the interesting findings started coming through. The most consistent issue across my synthetic test digests was source diversity — and it was not subtle. The January test corpus had many digests where Simon Willison's blog accounted for 55 to 80% of items. The agent was technically following its instructions (Simon is marked <code>always_include: true</code> in my profile), but it was over-weighting one high-signal source to the exclusion of others.</p>
 
-<p>Once the judge was calibrated, the interesting findings started coming through. The most consistent issue across my synthetic test digests was source diversity — and it was not subtle. The January test corpus had many digests where Simon Willison's blog accounted for 55 to 80% of items. The agent was technically following its instructions (Simon is marked <code>always_include: true</code> in my profile), but it was over-weighting one high-signal source to the exclusion of others.</p>
+      <p>This is the kind of pattern that is easy to miss when you are just reading your inbox. Any individual digest might feel fine — Simon Willison writes excellent content. But when you look at scores over time, source diversity has been systematically low, which means the agent is not using its full toolkit, and the digest is effectively one person's curation wearing multiple hats.</p>
 
-<p>This is the kind of pattern that is easy to miss when you are just reading your inbox. Any individual digest might feel fine — Simon Willison writes excellent content. But when you look at scores over time, source diversity has been systematically low, which means the agent is not using its full toolkit, and the digest is effectively one person's curation wearing multiple hats.</p>
+      <p>The fix is straightforward: adjust the system prompt to more explicitly cap any single source's contribution, and add a stronger directive to draw from TLDR, Product Hunt, and Lenny's in every digest. But I would only have known to make that specific change because the judge gave me a precise, consistent diagnosis across 21 digests — not just a feeling.</p>
 
-<p>The fix is straightforward: adjust the system prompt to more explicitly cap any single source's contribution, and add a stronger directive to draw from TLDR, Product Hunt, and Lenny's in every digest. But I would only have known to make that specific change because the judge gave me a precise, consistent diagnosis across 21 digests — not just a feeling.</p>
+      <h2>The Cost Question</h2>
 
-<h2>The Cost Question</h2>
+      <p>One thing worth flagging explicitly: evaluation is significantly more expensive than generation.</p>
 
-<p>One thing worth flagging explicitly: evaluation is significantly more expensive than generation.</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Component</th>
+            <th>Model</th>
+            <th>Cost per Digest</th>
+            <th>Monthly (daily cadence)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Digest generation</td>
+            <td><a href="https://www.anthropic.com/claude/sonnet" target="_blank">Claude Sonnet 4.5</a></td>
+            <td>~$0.015</td>
+            <td>~$0.45</td>
+          </tr>
+          <tr>
+            <td>Judge evaluation</td>
+            <td><a href="https://www.anthropic.com/claude/opus" target="_blank">Claude Opus 4.5</a></td>
+            <td>~$0.10</td>
+            <td>~$3.00</td>
+          </tr>
+          <tr style="font-weight:600;">
+            <td>Total</td>
+            <td></td>
+            <td>~$0.115</td>
+            <td>~$3.45</td>
+          </tr>
+        </tbody>
+      </table>
 
-<table>
-  <thead>
-    <tr>
-      <th>Component</th>
-      <th>Model</th>
-      <th>Cost per Digest</th>
-      <th>Monthly (daily cadence)</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>Digest generation</td>
-      <td><a href="https://www.anthropic.com/claude/sonnet" target="_blank">Claude Sonnet 4.5</a></td>
-      <td>~$0.015</td>
-      <td>~$0.45</td>
-    </tr>
-    <tr>
-      <td>Judge evaluation</td>
-      <td><a href="https://www.anthropic.com/claude/opus" target="_blank">Claude Opus 4.5</a></td>
-      <td>~$0.10</td>
-      <td>~$3.00</td>
-    </tr>
-    <tr style="font-weight:600;">
-      <td>Total</td>
-      <td></td>
-      <td>~$0.115</td>
-      <td>~$3.45</td>
-    </tr>
-  </tbody>
-</table>
+      <p>The judge costs about seven times more per run than the agent itself. This is because the judge prompt is substantially longer: it includes the user profile, the system prompt, run metadata, the past two digests for novelty context, the full rubric, and the digest being evaluated. Opus is also priced higher than Sonnet. The combination adds up.</p>
 
-<p>The judge costs about seven times more per run than the agent itself. This is because the judge prompt is substantially longer: it includes the user profile, the system prompt, run metadata, the past two digests for novelty context, the full rubric, and the digest being evaluated. Opus is also priced higher than Sonnet. The combination adds up.</p>
+      <p>Is it worth it? For my use case, yes — $3 a month for a continuous quality signal is inexpensive. But it illustrates a broader truth: building robust evaluation infrastructure is not free, and at scale, eval costs can rival or exceed generation costs. If you are running evaluations across thousands of outputs, this needs to be part of your cost model from the start.</p>
 
-<p>Is it worth it? For my use case, yes — $3 a month for a continuous quality signal is inexpensive. But it illustrates a broader truth: building robust evaluation infrastructure is not free, and at scale, eval costs can rival or exceed generation costs. If you are running evaluations across thousands of outputs, this needs to be part of your cost model from the start.</p>
+      <h2>The Closed-Loop Temptation</h2>
 
-<h2>The Closed-Loop Temptation</h2>
+      <p>An obvious question follows from all of this: if the judge can identify problems, can the agent just fix them automatically? Could I wire the scores back into a loop where a second agent reads the judge's output, revises the curation criteria, and the next digest automatically improves?</p>
 
-<p>An obvious question follows from all of this: if the judge can identify problems, can the agent just fix them automatically? Could I wire the scores back into a loop where a second agent reads the judge's output, revises the curation criteria, and the next digest automatically improves?</p>
+      <p>Technically, yes. Architecturally, this is doable. But I would be cautious about doing it without oversight.</p>
 
-<p>Technically, yes. Architecturally, this is doable. But I would be cautious about doing it without oversight.</p>
+      <p>The risk is drift. If the judge identifies that source diversity is low and an automated agent responds by changing my user profile to deprioritise Simon Willison — without my review — it might fix one metric at the cost of something I care about more. The judge is calibrated to score against my stated preferences, but my stated preferences are an approximation of what I actually want. An automated loop that optimises against the approximation without human checks can drift in ways that feel subtle until they are obvious.</p>
 
-<p>The risk is drift. If the judge identifies that source diversity is low and an automated agent responds by changing my user profile to deprioritise Simon Willison — without my review — it might fix one metric at the cost of something I care about more. The judge is calibrated to score against my stated preferences, but my stated preferences are an approximation of what I actually want. An automated loop that optimises against the approximation without human checks can drift in ways that feel subtle until they are obvious.</p>
+      <div class="callout">
+        <strong>The more useful frame for what the judge does:</strong> it is a chief of staff overseeing quality at scale. It does not make the editorial calls — it identifies where the problems are, so I can decide how to address them. The bottleneck in improving the digest is not having enough data; it is deciding what changes to make to the system prompt. That decision benefits from human judgment.
+      </div>
 
-<div class="callout">
-  <strong>The more useful frame for what the judge does:</strong> it is a chief of staff overseeing quality at scale. It does not make the editorial calls — it identifies where the problems are, so I can decide how to address them. The bottleneck in improving the digest is not having enough data; it is deciding what changes to make to the system prompt. That decision benefits from human judgment.
-</div>
+      <p>Where this becomes genuinely transformative is at scale. If I were running fifty versions of this digest for different users, or a hundred different agentic workflows in a production system, I could not manually review every output. The judge lets me set quality thresholds and only look at the things that fall below them — the difference between monitoring everything and being alerted only when something actually needs attention.</p>
 
-<p>Where this becomes genuinely transformative is at scale. If I were running fifty versions of this digest for different users, or a hundred different agentic workflows in a production system, I could not manually review every output. The judge lets me set quality thresholds and only look at the things that fall below them — the difference between monitoring everything and being alerted only when something actually needs attention.</p>
+      <div class="insight-box">
+        <div class="label">From One Use Case to Many</div>
+        <p style="margin:0;">The real value of building a proper eval framework — even for something as small as a personal digest — is that the pattern transfers. The same structure I used here (rubric design, LLM judge, Pearson calibration, threshold alerting) applies directly to a customer-facing summarisation product, a content moderation pipeline, or any agentic workflow where output quality matters and volume makes manual review impractical. You build the eval once for one use case; you validate that it captures your intent; then you scale the framework. The bottleneck for scaling AI products is often not the model or the infrastructure — it is whether you can trust what the model is producing. That is an eval problem.</p>
+      </div>
 
-<div class="insight-box">
-  <div class="label">From One Use Case to Many</div>
-  The real value of building a proper eval framework — even for something as small as a personal digest — is that the pattern transfers. The same structure I used here (rubric design, LLM judge, Pearson calibration, threshold alerting) applies directly to a customer-facing summarisation product, a content moderation pipeline, or any agentic workflow where output quality matters and volume makes manual review impractical. You build the eval once for one use case; you validate that it captures your intent; then you scale the framework. The bottleneck for scaling AI products is often not the model or the infrastructure — it is whether you can trust what the model is producing. That is an eval problem.
-</div>
+      <h2>Production-Grade Eval Tooling: MLflow and Braintrust</h2>
 
-<h2>Production-Grade Eval Tooling: MLflow and Braintrust</h2>
+      <p>Building a custom eval framework from scratch — as I did here — is instructive. But at production scale, teams reach for dedicated tooling. Two worth knowing are <a href="https://mlflow.org" target="_blank">MLflow</a> (open-source, maintained by Databricks) and <a href="https://www.braintrust.dev" target="_blank">Braintrust</a>. I recently attended a tech community session where both were covered in depth. Here is what stood out.</p>
 
-<p>Building a custom eval framework from scratch — as I did here — is instructive. But at production scale, teams reach for dedicated tooling. Two worth knowing are <a href="https://mlflow.org" target="_blank">MLflow</a> (open-source, maintained by Databricks) and <a href="https://www.braintrust.dev" target="_blank">Braintrust</a>. I recently attended a tech community session where both were covered in depth. Here is what stood out.</p>
+      <p><strong>MLflow</strong> has expanded well beyond its original experiment-tracking roots into a full AI observability layer. For LLM applications, it captures traces and telemetry at the request level — you can see exactly what prompt was sent, what the model returned, how long it took, and what tools were called. On top of that trace infrastructure, MLflow supports LLM-as-judge evaluation natively: you define judge criteria (safety, PII detection, relevance, tone) and run them across trace batches. The GEPA prompt optimizer is particularly useful — it treats your prompt as a variable and optimises it systematically against your rubric, rather than relying on manual iteration. MLflow also has native MCP integration, which means it can plug directly into agentic tool-use workflows without custom instrumentation.</p>
 
-<p><strong>MLflow</strong> has expanded well beyond its original experiment-tracking roots into a full AI observability layer. For LLM applications, it captures traces and telemetry at the request level — you can see exactly what prompt was sent, what the model returned, how long it took, and what tools were called. On top of that trace infrastructure, MLflow supports LLM-as-judge evaluation natively: you define judge criteria (safety, PII detection, relevance, tone) and run them across trace batches. The GEPA prompt optimizer is particularly useful — it treats your prompt as a variable and optimises it systematically against your rubric, rather than relying on manual iteration. MLflow also has native MCP integration, which means it can plug directly into agentic tool-use workflows without custom instrumentation.</p>
+      <p><strong>Braintrust</strong> approaches evaluation through the lens of continuous integration. The core idea — what they call <em>eval-driven development</em> — is that every prompt change should trigger a scored eval run, the same way a code change triggers a test suite. This reframes evaluation from an occasional quality check into a continuous feedback loop: you do not ship a prompt update until the evals pass. Braintrust supports single-agent and multi-agent evaluation patterns, as well as multi-turn conversation evals, which are considerably harder to design than single-output evals. The practical implication is that teams using Braintrust tend to catch regressions before deployment rather than in production — the same shift that unit testing enabled for software engineering.</p>
 
-<p><strong>Braintrust</strong> approaches evaluation through the lens of continuous integration. The core idea — what they call <em>eval-driven development</em> — is that every prompt change should trigger a scored eval run, the same way a code change triggers a test suite. This reframes evaluation from an occasional quality check into a continuous feedback loop: you do not ship a prompt update until the evals pass. Braintrust supports single-agent and multi-agent evaluation patterns, as well as multi-turn conversation evals, which are considerably harder to design than single-output evals. The practical implication is that teams using Braintrust tend to catch regressions before deployment rather than in production — the same shift that unit testing enabled for software engineering.</p>
+      <p>Both tools operate on a principle that aligns with what I learned building this system manually: the value of evaluation compounds. A single scored output tells you little. A dashboard of scores over time tells you whether a prompt change helped or hurt, which dimensions are systematically underperforming, and when something drifts. That compounding diagnostic value is what turns eval infrastructure from a nice-to-have into a core part of how you improve an AI system.</p>
 
-<p>Both tools operate on a principle that aligns with what I learned building this system manually: the value of evaluation compounds. A single scored output tells you little. A dashboard of scores over time tells you whether a prompt change helped or hurt, which dimensions are systematically underperforming, and when something drifts. That compounding diagnostic value is what turns eval infrastructure from a nice-to-have into a core part of how you improve an AI system.</p>
+      <h2>What I Would Do Differently</h2>
 
-<h2>What I Would Do Differently</h2>
+      <p><strong>Start with the rubric, not the code.</strong> The hardest part of this whole exercise was not implementing the scoring pipeline or the Streamlit dashboard. It was writing rubric language precise enough for the judge to interpret the way I intended. I would spend more time on the rubric before touching a keyboard — specifically, identifying upfront which dimensions need quantitative thresholds and writing those first.</p>
 
-<p><strong>Start with the rubric, not the code.</strong> The hardest part of this whole exercise was not implementing the scoring pipeline or the Streamlit dashboard. It was writing rubric language precise enough for the judge to interpret the way I intended. I would spend more time on the rubric before touching a keyboard — specifically, identifying upfront which dimensions need quantitative thresholds and writing those first.</p>
+      <p><strong>Calibration is not optional.</strong> The initial misalignment between my scores and the judge's on source diversity would have made the whole system misleading if I had not caught it. I would have been optimizing against a metric that did not actually reflect my taste. Running calibration before trusting the judge is the step that makes everything else meaningful.</p>
 
-<p><strong>Calibration is not optional.</strong> The initial misalignment between my scores and the judge's on source diversity would have made the whole system misleading if I had not caught it. I would have been optimizing against a metric that did not actually reflect my taste. Running calibration before trusting the judge is the step that makes everything else meaningful.</p>
+      <p><strong>The judge needs maximum context.</strong> Early versions of the judge prompt did not include the agent's run logs — the metadata about which sources were fetched, which failed, how many items were considered before the final selection. Adding that context made the judgments significantly more accurate, especially for source failure recovery and source diversity. Judges need to understand intent, not just output.</p>
 
-<p><strong>The judge needs maximum context.</strong> Early versions of the judge prompt did not include the agent's run logs — the metadata about which sources were fetched, which failed, how many items were considered before the final selection. Adding that context made the judgments significantly more accurate, especially for source failure recovery and source diversity. Judges need to understand intent, not just output.</p>
+      <div class="insight-box">
+        <div class="label">The System Running Today</div>
+        <p style="margin:0;">Every morning the agent generates a digest, archives it, and the scoring pipeline evaluates it automatically via GitHub Actions. A Streamlit dashboard shows score trends over time, flags any digest that scored below threshold, and surfaces the judge's specific explanation for why. When a dimension starts trending down, I know exactly what to fix — and I know whether the fix worked.</p>
+      </div>
 
-<div class="insight-box">
-  <div class="label">The System Running Today</div>
-  Every morning the agent generates a digest, archives it, and the scoring pipeline evaluates it automatically via GitHub Actions. A Streamlit dashboard shows score trends over time, flags any digest that scored below threshold, and surfaces the judge's specific explanation for why. When a dimension starts trending down, I know exactly what to fix — and I know whether the fix worked.
-</div>
+      <p>There is a broader point worth sitting with. In a Stanford engineering lecture I came across, someone made the observation that <em>models are only going to develop as fast as they can be evaluated</em>. It is easy to treat evaluation as a secondary concern — the thing you do after you have built the thing that matters. But the history of how frontier models improved suggests the opposite. The jumps in capability — RLHF, constitutional AI, scalable oversight — all depended on having evaluation infrastructure that could credibly signal what "better" meant. Anthropic's engineering team has written about this directly: good evaluations are what allow teams to ship AI agents confidently, and their value compounds over the lifecycle of a system. Without them, you are flying without instruments.</p>
 
-<p>There is a broader point worth sitting with. In a Stanford engineering lecture I came across, someone made the observation that <em>models are only going to develop as fast as they can be evaluated</em>. It is easy to treat evaluation as a secondary concern — the thing you do after you have built the thing that matters. But the history of how frontier models improved suggests the opposite. The jumps in capability — RLHF, constitutional AI, scalable oversight — all depended on having evaluation infrastructure that could credibly signal what "better" meant. Anthropic's engineering team has written about this directly: good evaluations are what allow teams to ship AI agents confidently, and their value compounds over the lifecycle of a system. Without them, you are flying without instruments.</p>
+      <p>For operators building with AI — not just researchers training models — the same logic applies. You do not need a research team to build a meaningful eval. You need a rubric precise enough to be scored consistently, a judge calibrated to your taste, and the discipline to look at the scores rather than just reading your inbox and having a feeling. That is the whole system. And it is more tractable than it looks.</p>
 
-<p>For operators building with AI — not just researchers training models — the same logic applies. You do not need a research team to build a meaningful eval. You need a rubric precise enough to be scored consistently, a judge calibrated to your taste, and the discipline to look at the scores rather than just reading your inbox and having a feeling. That is the whole system. And it is more tractable than it looks.</p>
+      <div class="next-post">
+        <div class="label">Previous in this Series</div>
+        <div class="title"><a href="/blog/eval-overview.html">How Do We Know If an AI Model Is Actually Good?</a></div>
+        <p style="font-size:15px;color:var(--text-light);margin:8px 0 0;">Evaluation Series Part 1: the three-layer evaluation framework, the benchmark landscape, why evals degrade over time, and the case for building your own.</p>
+      </div>
 
-<div class="next-post">
-  <div class="label">Previous in this Series</div>
-  <div class="title"><a href="/blog/eval-overview.html">How Do We Know If an AI Model Is Actually Good?</a></div>
-  <p style="font-size:15px;color:#64748b;margin:6px 0 0;font-family:-apple-system,sans-serif;">Evaluation Series Part 1: the three-layer evaluation framework, the benchmark landscape, why evals degrade over time, and the case for building your own.</p>
-</div>
+      <div class="post-footer">
+        <p><strong>About the author:</strong> I'm Linus, a Singaporean Product Manager currently based in San Francisco. I write about building practical AI systems from the perspective of someone who's learning by doing. This is part of my ongoing series, <em>Applied AI Thinking for Operators</em>.</p>
+        <p>
+          Email: <a href="mailto:seah.linus@gmail.com">seah.linus@gmail.com</a><br>
+          GitHub: <a href="https://github.com/linusseah" target="_blank">linusseah</a>
+        </p>
+        <div style="margin-top: 16px; display: flex; gap: 20px; align-items: center;">
+          <a href="mailto:seah.linus@gmail.com" title="Email" style="color: var(--text-light); text-decoration: none;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="4" width="20" height="16" rx="2"/>
+              <path d="M2 7l10 7 10-7"/>
+            </svg>
+          </a>
+          <a href="https://www.linkedin.com/in/linusseah/" target="_blank" title="LinkedIn" style="color: var(--text-light); text-decoration: none;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="2" width="20" height="20" rx="3"/>
+              <path d="M7 10v7M7 7v.01M12 17v-4a2 2 0 0 1 4 0v4M12 10v7"/>
+            </svg>
+          </a>
+          <a href="https://github.com/linusseah" target="_blank" title="GitHub" style="color: var(--text-light); text-decoration: none;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/>
+            </svg>
+          </a>
+        </div>
+        <p style="font-size:12px; color: var(--text-muted); margin-top:24px;">
+          <em>References:</em><br>
+          · <a href="https://arxiv.org/abs/2306.05685" target="_blank">Zheng et al. — MT-Bench: Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena</a><br>
+          · <a href="https://platform.claude.com/docs/en/agent-sdk/overview" target="_blank">Anthropic — Claude Agent SDK Documentation</a><br>
+          · <a href="https://mlflow.org" target="_blank">MLflow — AI Observability and Evaluation Platform</a><br>
+          · <a href="https://www.braintrust.dev" target="_blank">Braintrust — Eval-Driven Development for AI</a><br>
+          · <a href="https://www.anthropic.com/research/evaluating-ai-systems" target="_blank">Anthropic — Building Evals for AI Agents</a>
+        </p>
+      </div>
 
-<p>
-  <span class="tag">LLM Evaluation</span>
-  <span class="tag">LLM-as-a-Judge</span>
-  <span class="tag">Calibration</span>
-  <span class="tag">Pearson Correlation</span>
-  <span class="tag">Rubric Design</span>
-  <span class="tag">Claude Opus</span>
-  <span class="tag">AI Agents</span>
-  <span class="tag">Applied AI</span>
-</p>
+    </article>
 
-<div class="post-footer">
-  <strong>About the author</strong><br>
-  Linus Seah writes about practical AI implementation for operators — people building real systems with LLMs, not just prompting chatbots. He is an MBA student at Kellogg and the author of the <a href="https://github.com/sumoseah/daily-digest-v2" target="_blank">daily-digest-v2</a> project.<br><br>
-  <a href="https://www.linkedin.com/in/linusseah/" target="_blank">LinkedIn</a> ·
-  <a href="https://github.com/sumoseah/daily-digest-v2" target="_blank">GitHub</a> ·
-  <a href="#">Applied AI Thinking for Operators</a>
-</div>
+  </main>
 
+  <footer>
+    <div class="container">
+      Linus Seah · 2026
+    </div>
+  </footer>
+
+<!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "0772180b5fc641d8870481048657edf2"}'></script><!-- End Cloudflare Web Analytics -->
 </body>
 </html>

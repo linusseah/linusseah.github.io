@@ -1,606 +1,411 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>How Do We Know If an AI Model Is Actually Good? — Applied AI Thinking for Operators</title>
-<style>
-  * { box-sizing: border-box; }
-
-  body {
-    font-family: 'Georgia', 'Times New Roman', serif;
-    font-size: 18px;
-    line-height: 1.75;
-    color: #1a1a2e;
-    max-width: 720px;
-    margin: 0 auto;
-    padding: 40px 20px;
-    background: #fff;
-  }
-
-  .series-banner {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    font-size: 13px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: #6366f1;
-    margin-bottom: 8px;
-  }
-
-  h1 {
-    font-size: 36px;
-    line-height: 1.2;
-    font-weight: 700;
-    color: #0f172a;
-    margin: 0 0 12px;
-  }
-
-  .subtitle {
-    font-size: 20px;
-    color: #64748b;
-    font-style: italic;
-    margin-bottom: 8px;
-    line-height: 1.4;
-  }
-
-  .byline {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    font-size: 14px;
-    color: #94a3b8;
-    margin-bottom: 40px;
-  }
-  .byline a { color: #6366f1; text-decoration: none; }
-  .byline a:hover { text-decoration: underline; }
-
-  h2 {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    font-size: 24px;
-    font-weight: 700;
-    color: #0f172a;
-    margin: 48px 0 16px;
-    padding-top: 16px;
-    border-top: 1px solid #e2e8f0;
-  }
-
-  h3 {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    font-size: 18px;
-    font-weight: 600;
-    color: #334155;
-    margin: 32px 0 12px;
-  }
-
-  p { margin: 0 0 20px; }
-
-  a { color: #6366f1; text-decoration: none; }
-  a:hover { text-decoration: underline; }
-
-  .callout {
-    background: #f8fafc;
-    border-left: 4px solid #6366f1;
-    padding: 20px 24px;
-    margin: 32px 0;
-    font-size: 17px;
-    font-style: italic;
-    color: #334155;
-    border-radius: 0 8px 8px 0;
-  }
-  .callout strong { color: #1e293b; font-style: normal; }
-
-  .insight-box {
-    background: #f0fdf4;
-    border: 1px solid #bbf7d0;
-    border-radius: 8px;
-    padding: 20px 24px;
-    margin: 32px 0;
-    font-size: 16px;
-  }
-  .insight-box .label {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: #15803d;
-    margin-bottom: 8px;
-  }
-
-  .warning-box {
-    background: #fffbeb;
-    border: 1px solid #fde68a;
-    border-radius: 8px;
-    padding: 20px 24px;
-    margin: 32px 0;
-    font-size: 16px;
-  }
-  .warning-box .label {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: #92400e;
-    margin-bottom: 8px;
-  }
-
-  .figure {
-    margin: 36px 0;
-    text-align: center;
-  }
-  .figure svg {
-    max-width: 100%;
-    border-radius: 8px;
-    border: 1px solid #e2e8f0;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-  }
-  .figure .caption {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    font-size: 13px;
-    color: #94a3b8;
-    margin-top: 10px;
-    font-style: italic;
-    text-align: left;
-  }
-
-  code {
-    font-family: 'SF Mono', 'Fira Code', monospace;
-    font-size: 14px;
-    background: #f1f5f9;
-    padding: 2px 6px;
-    border-radius: 4px;
-    color: #334155;
-  }
-
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    margin: 24px 0;
-    font-size: 15px;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  }
-  th {
-    background: #f8fafc;
-    padding: 12px 16px;
-    text-align: left;
-    font-weight: 600;
-    border-bottom: 2px solid #e2e8f0;
-    color: #334155;
-  }
-  td {
-    padding: 10px 16px;
-    border-bottom: 1px solid #f1f5f9;
-    vertical-align: top;
-    color: #475569;
-  }
-  tr:hover td { background: #fafbfc; }
-
-  .post-footer {
-    margin-top: 60px;
-    padding-top: 24px;
-    border-top: 2px solid #e2e8f0;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    font-size: 14px;
-    color: #64748b;
-  }
-  .post-footer a { color: #6366f1; }
-
-  .tag {
-    display: inline-block;
-    background: #f1f5f9;
-    color: #475569;
-    font-size: 12px;
-    padding: 4px 10px;
-    border-radius: 12px;
-    margin-right: 6px;
-    margin-bottom: 6px;
-  }
-
-  .next-post {
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    padding: 20px 24px;
-    margin: 40px 0;
-  }
-  .next-post .label {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    font-size: 12px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: #6366f1;
-    margin-bottom: 6px;
-  }
-  .next-post .title {
-    font-size: 18px;
-    font-weight: 600;
-    color: #0f172a;
-  }
-
-  .layer-badge {
-    display: inline-block;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    font-size: 11px;
-    font-weight: 700;
-    padding: 2px 8px;
-    border-radius: 10px;
-    margin-left: 4px;
-    vertical-align: middle;
-  }
-  .l1 { background: #dbeafe; color: #1d4ed8; }
-  .l2 { background: #fce7f3; color: #be185d; }
-  .l3 { background: #dcfce7; color: #15803d; }
-
-  .footnote {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    font-size: 13px;
-    color: #94a3b8;
-    border-top: 1px solid #f1f5f9;
-    margin-top: 48px;
-    padding-top: 16px;
-  }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>How Do We Know If an AI Model Is Actually Good? — Linus Seah</title>
+  <meta name="description" content="The gap between benchmark scores and real-world performance is wider than the leaderboards suggest. Here is how to think about it.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
 
-<div class="series-banner">Applied AI Thinking for Operators · Evaluation Series · Part 1 of 2</div>
+  <nav>
+    <div class="container">
+      <a href="/" class="nav-name"><img src="/images/pp.jpg" alt="Linus Seah" class="nav-photo">Linus Seah</a>
+      <ul class="nav-links">
+        <li><a href="/about/">About</a></li>
+        <li><a href="/projects/">Projects</a></li>
+        <li><a href="/blog/" class="active">Articles</a></li>
+      </ul>
+    </div>
+  </nav>
 
-<h1>How Do We Know If an AI Model Is Actually Good?</h1>
+  <main class="container">
 
-<p class="subtitle">The gap between benchmark scores and real-world performance is wider than the leaderboards suggest. Here is how to think about it.</p>
+    <div class="post-header">
+      <div class="series">Applied AI Thinking for Operators · Evaluation Series · Part 1 of 2</div>
+      <h1>How Do We Know If an AI Model Is Actually Good?</h1>
+      <p class="post-subtitle">The gap between benchmark scores and real-world performance is wider than the leaderboards suggest. Here is how to think about it.</p>
+      <div class="post-meta">
+        By <a href="https://www.linkedin.com/in/linusseah/" target="_blank">Linus Seah</a> · February 2026 · 12 min read<br>
+        <em>Part of the Applied AI Thinking for Operators series. Part 2 of this sub-series covers <a href="/blog/llm-judge.html">how I built a custom evaluation framework for my own digest agent</a>.</em>
+      </div>
+    </div>
 
-<p class="byline">
-  By <a href="https://www.linkedin.com/in/linusseah/" target="_blank">Linus Seah</a> · February 2026 · 12 min read<br>
-  <em>Part of the <a href="#">Applied AI Thinking for Operators</a> series. Part 2 of this sub-series covers <a href="/blog/llm-judge.html">how I built a custom evaluation framework for my own digest agent</a>.</em>
-</p>
+    <article class="prose">
 
-<p>Every week, a new model drops. The announcement follows a familiar template: state-of-the-art on benchmark X, beats previous SOTA on benchmark Y, human-level performance on Z. The numbers are real. The benchmarks are real. And yet, if you have spent any time actually deploying these models on real tasks, you have probably had the experience of picking the "best" model by the numbers and being quietly disappointed by the results.</p>
+      <p>Every week, a new model drops. The announcement follows a familiar template: state-of-the-art on benchmark X, beats previous SOTA on benchmark Y, human-level performance on Z. The numbers are real. The benchmarks are real. And yet, if you have spent any time actually deploying these models on real tasks, you have probably had the experience of picking the "best" model by the numbers and being quietly disappointed by the results.</p>
 
-<p>This is the central tension of AI evaluation: the gap between what we can measure and what we actually care about. Understanding that gap is the starting point for thinking clearly about how to evaluate AI for your own use case. This post covers the landscape of how models are evaluated today, where the methods work well, where they break down, and what that means for anyone choosing or building with AI in a production setting.</p>
+      <p>This is the central tension of AI evaluation: the gap between what we can measure and what we actually care about. Understanding that gap is the starting point for thinking clearly about how to evaluate AI for your own use case. This post covers the landscape of how models are evaluated today, where the methods work well, where they break down, and what that means for anyone choosing or building with AI in a production setting.</p>
 
-<h2>The Three Layers of Model Evaluation</h2>
+      <h2>The Three Layers of Model Evaluation</h2>
 
-<p>Model evaluation is not one thing. It is really three overlapping concerns, each asking a different question about a model.</p>
+      <p>Model evaluation is not one thing. It is really three overlapping concerns, each asking a different question about a model.</p>
 
-<p>The first is <strong>general capability</strong>: is this model broadly intelligent? Can it reason, write, follow complex instructions, solve novel problems? This is what most public benchmarks measure. <a href="https://arxiv.org/abs/2009.03300" target="_blank">MMLU</a> (Massive Multitask Language Understanding) tests knowledge across 57 academic subjects. ARC-Challenge tests scientific reasoning. MATH tests mathematical problem-solving. <a href="https://github.com/openai/human-eval" target="_blank">HumanEval</a> and <a href="https://www.swebench.com" target="_blank">SWE-bench</a> test coding. These benchmarks are designed to be hard enough that a model cannot just pattern-match its way through them — they are meant to probe something like general reasoning ability.</p>
+      <p>The first is <strong>general capability</strong>: is this model broadly intelligent? Can it reason, write, follow complex instructions, solve novel problems? This is what most public benchmarks measure. <a href="https://arxiv.org/abs/2009.03300" target="_blank">MMLU</a> (Massive Multitask Language Understanding) tests knowledge across 57 academic subjects. ARC-Challenge tests scientific reasoning. MATH tests mathematical problem-solving. <a href="https://github.com/openai/human-eval" target="_blank">HumanEval</a> and <a href="https://www.swebench.com" target="_blank">SWE-bench</a> test coding. These benchmarks are designed to be hard enough that a model cannot just pattern-match its way through them — they are meant to probe something like general reasoning ability.</p>
 
-<p>The second layer is <strong>safety and alignment</strong>: will this model do what I want without doing things I do not want? This is where red-teaming, adversarial testing, and constitutional AI evaluations live. How does the model handle requests to help with harmful content? Does it refuse appropriately, or refuse too aggressively? Does it have problematic biases in how it treats different groups? This layer is less visible in public benchmarks but is increasingly where labs spend the most internal engineering effort.</p>
+      <p>The second layer is <strong>safety and alignment</strong>: will this model do what I want without doing things I do not want? This is where red-teaming, adversarial testing, and constitutional AI evaluations live. How does the model handle requests to help with harmful content? Does it refuse appropriately, or refuse too aggressively? Does it have problematic biases in how it treats different groups? This layer is less visible in public benchmarks but is increasingly where labs spend the most internal engineering effort.</p>
 
-<p>The third layer is <strong>task-specific performance</strong>: can this model do the particular thing I need it to do, and do it well? This is where general benchmarks become inadequate. A model that aces MMLU might still write mediocre marketing copy, give imprecise legal summaries, or fail to extract the information you need from a contract. Task-specific evals are the ones you usually have to build yourself — and they are the most meaningful signal for any real deployment decision.</p>
+      <p>The third layer is <strong>task-specific performance</strong>: can this model do the particular thing I need it to do, and do it well? This is where general benchmarks become inadequate. A model that aces MMLU might still write mediocre marketing copy, give imprecise legal summaries, or fail to extract the information you need from a contract. Task-specific evals are the ones you usually have to build yourself — and they are the most meaningful signal for any real deployment decision.</p>
 
-<div class="figure">
-  <svg viewBox="0 0 700 310" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:#fff;">
-    <text x="350" y="26" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="14" font-weight="700" fill="#0f172a">How the Weight of Each Evaluation Layer Shifts by Model Type</text>
+      <div class="figure">
+        <svg viewBox="0 0 700 310" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:#fff;">
+          <text x="350" y="26" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="14" font-weight="700" fill="#0f172a">How the Weight of Each Evaluation Layer Shifts by Model Type</text>
 
-    <!-- Column headers -->
-    <rect x="210" y="38" width="150" height="36" rx="6" fill="#f1f5f9"/>
-    <text x="285" y="55" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="12" font-weight="600" fill="#334155">Base / General LLM</text>
-    <text x="285" y="69" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#94a3b8">GPT-4o, Claude, Gemini</text>
+          <!-- Column headers -->
+          <rect x="210" y="38" width="150" height="36" rx="6" fill="#f1f5f9"/>
+          <text x="285" y="55" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="12" font-weight="600" fill="#334155">Base / General LLM</text>
+          <text x="285" y="69" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#94a3b8">GPT-4o, Claude, Gemini</text>
 
-    <rect x="370" y="38" width="150" height="36" rx="6" fill="#f1f5f9"/>
-    <text x="445" y="55" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="12" font-weight="600" fill="#334155">Specialized LLM</text>
-    <text x="445" y="69" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#94a3b8">Fine-tuned / domain models</text>
+          <rect x="370" y="38" width="150" height="36" rx="6" fill="#f1f5f9"/>
+          <text x="445" y="55" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="12" font-weight="600" fill="#334155">Specialized LLM</text>
+          <text x="445" y="69" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#94a3b8">Fine-tuned / domain models</text>
 
-    <rect x="530" y="38" width="150" height="36" rx="6" fill="#f1f5f9"/>
-    <text x="605" y="55" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="12" font-weight="600" fill="#334155">Agentic Model</text>
-    <text x="605" y="69" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#94a3b8">Multi-step, tool-using</text>
+          <rect x="530" y="38" width="150" height="36" rx="6" fill="#f1f5f9"/>
+          <text x="605" y="55" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="12" font-weight="600" fill="#334155">Agentic Model</text>
+          <text x="605" y="69" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#94a3b8">Multi-step, tool-using</text>
 
-    <!-- Row labels -->
-    <rect x="10" y="84" width="190" height="66" rx="6" fill="#dbeafe"/>
-    <text x="105" y="107" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="12" font-weight="700" fill="#1d4ed8">Layer 1</text>
-    <text x="105" y="123" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="11" font-weight="600" fill="#1e40af">General Capability</text>
-    <text x="105" y="139" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#3b82f6">MMLU, ARC, HumanEval</text>
+          <!-- Row labels -->
+          <rect x="10" y="84" width="190" height="66" rx="6" fill="#dbeafe"/>
+          <text x="105" y="107" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="12" font-weight="700" fill="#1d4ed8">Layer 1</text>
+          <text x="105" y="123" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="11" font-weight="600" fill="#1e40af">General Capability</text>
+          <text x="105" y="139" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#3b82f6">MMLU, ARC, HumanEval</text>
 
-    <rect x="10" y="160" width="190" height="66" rx="6" fill="#fce7f3"/>
-    <text x="105" y="183" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="12" font-weight="700" fill="#be185d">Layer 2</text>
-    <text x="105" y="199" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="11" font-weight="600" fill="#9d174d">Safety and Alignment</text>
-    <text x="105" y="215" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#ec4899">Red-teaming, TruthfulQA</text>
+          <rect x="10" y="160" width="190" height="66" rx="6" fill="#fce7f3"/>
+          <text x="105" y="183" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="12" font-weight="700" fill="#be185d">Layer 2</text>
+          <text x="105" y="199" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="11" font-weight="600" fill="#9d174d">Safety and Alignment</text>
+          <text x="105" y="215" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#ec4899">Red-teaming, TruthfulQA</text>
 
-    <rect x="10" y="236" width="190" height="66" rx="6" fill="#dcfce7"/>
-    <text x="105" y="259" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="12" font-weight="700" fill="#15803d">Layer 3</text>
-    <text x="105" y="275" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="11" font-weight="600" fill="#166534">Task-Specific</text>
-    <text x="105" y="291" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#4ade80">Custom evals, domain tests</text>
+          <rect x="10" y="236" width="190" height="66" rx="6" fill="#dcfce7"/>
+          <text x="105" y="259" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="12" font-weight="700" fill="#15803d">Layer 3</text>
+          <text x="105" y="275" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="11" font-weight="600" fill="#166534">Task-Specific</text>
+          <text x="105" y="291" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#4ade80">Custom evals, domain tests</text>
 
-    <!-- Grid: Base LLM -->
-    <rect x="210" y="84" width="150" height="66" rx="4" fill="#1d4ed8" opacity="0.85"/>
-    <text x="285" y="108" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="12" font-weight="700" fill="#fff">Primary signal</text>
-    <text x="285" y="126" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#bfdbfe">Core selection criteria</text>
+          <!-- Grid: Base LLM -->
+          <rect x="210" y="84" width="150" height="66" rx="4" fill="#1d4ed8" opacity="0.85"/>
+          <text x="285" y="108" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="12" font-weight="700" fill="#fff">Primary signal</text>
+          <text x="285" y="126" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#bfdbfe">Core selection criteria</text>
 
-    <rect x="210" y="160" width="150" height="66" rx="4" fill="#be185d" opacity="0.80"/>
-    <text x="285" y="184" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="12" font-weight="700" fill="#fff">Non-negotiable</text>
-    <text x="285" y="202" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#fbcfe8">Labs invest heavily here</text>
+          <rect x="210" y="160" width="150" height="66" rx="4" fill="#be185d" opacity="0.80"/>
+          <text x="285" y="184" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="12" font-weight="700" fill="#fff">Non-negotiable</text>
+          <text x="285" y="202" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#fbcfe8">Labs invest heavily here</text>
 
-    <rect x="210" y="236" width="150" height="66" rx="4" fill="#f1f5f9"/>
-    <text x="285" y="260" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="12" font-weight="600" fill="#94a3b8">Not applicable</text>
-    <text x="285" y="278" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#cbd5e1">No deployment context yet</text>
+          <rect x="210" y="236" width="150" height="66" rx="4" fill="#f1f5f9"/>
+          <text x="285" y="260" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="12" font-weight="600" fill="#94a3b8">Not applicable</text>
+          <text x="285" y="278" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#cbd5e1">No deployment context yet</text>
 
-    <!-- Grid: Specialized LLM -->
-    <rect x="370" y="84" width="150" height="66" rx="4" fill="#93c5fd" opacity="0.70"/>
-    <text x="445" y="108" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="12" font-weight="600" fill="#1e40af">Table stakes</text>
-    <text x="445" y="126" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#1e3a8a">Verify threshold is met</text>
+          <!-- Grid: Specialized LLM -->
+          <rect x="370" y="84" width="150" height="66" rx="4" fill="#93c5fd" opacity="0.70"/>
+          <text x="445" y="108" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="12" font-weight="600" fill="#1e40af">Table stakes</text>
+          <text x="445" y="126" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#1e3a8a">Verify threshold is met</text>
 
-    <rect x="370" y="160" width="150" height="66" rx="4" fill="#be185d" opacity="0.80"/>
-    <text x="445" y="184" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="12" font-weight="700" fill="#fff">Non-negotiable</text>
-    <text x="445" y="202" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#fbcfe8">Domain-specific risks apply</text>
+          <rect x="370" y="160" width="150" height="66" rx="4" fill="#be185d" opacity="0.80"/>
+          <text x="445" y="184" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="12" font-weight="700" fill="#fff">Non-negotiable</text>
+          <text x="445" y="202" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#fbcfe8">Domain-specific risks apply</text>
 
-    <rect x="370" y="236" width="150" height="66" rx="4" fill="#15803d" opacity="0.85"/>
-    <text x="445" y="260" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="12" font-weight="700" fill="#fff">Primary signal</text>
-    <text x="445" y="278" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#bbf7d0">Domain task performance</text>
+          <rect x="370" y="236" width="150" height="66" rx="4" fill="#15803d" opacity="0.85"/>
+          <text x="445" y="260" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="12" font-weight="700" fill="#fff">Primary signal</text>
+          <text x="445" y="278" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#bbf7d0">Domain task performance</text>
 
-    <!-- Grid: Agentic -->
-    <rect x="530" y="84" width="150" height="66" rx="4" fill="#bfdbfe" opacity="0.55"/>
-    <text x="605" y="108" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="12" font-weight="600" fill="#1e40af">Table stakes</text>
-    <text x="605" y="126" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#1e3a8a">Already assumed capable</text>
+          <!-- Grid: Agentic -->
+          <rect x="530" y="84" width="150" height="66" rx="4" fill="#bfdbfe" opacity="0.55"/>
+          <text x="605" y="108" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="12" font-weight="600" fill="#1e40af">Table stakes</text>
+          <text x="605" y="126" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#1e3a8a">Already assumed capable</text>
 
-    <rect x="530" y="160" width="150" height="66" rx="4" fill="#be185d" opacity="0.80"/>
-    <text x="605" y="184" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="12" font-weight="700" fill="#fff">Non-negotiable</text>
-    <text x="605" y="202" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#fbcfe8">Agentic actions carry real risk</text>
+          <rect x="530" y="160" width="150" height="66" rx="4" fill="#be185d" opacity="0.80"/>
+          <text x="605" y="184" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="12" font-weight="700" fill="#fff">Non-negotiable</text>
+          <text x="605" y="202" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#fbcfe8">Agentic actions carry real risk</text>
 
-    <rect x="530" y="236" width="150" height="66" rx="4" fill="#14532d"/>
-    <text x="605" y="256" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="12" font-weight="700" fill="#fff">Most critical signal</text>
-    <text x="605" y="272" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#86efac">General benchmarks</text>
-    <text x="605" y="288" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#86efac">cannot measure this</text>
-  </svg>
-  <div class="caption">Layer 1 (general capability) is the primary selection signal for base models but becomes table stakes for agents. Layer 3 (task-specific) barely matters for a base model selection — there is no deployment context yet — but becomes the most critical signal for any deployed agentic system. Layer 2 (safety and alignment) is non-negotiable at every level.</div>
-</div>
+          <rect x="530" y="236" width="150" height="66" rx="4" fill="#14532d"/>
+          <text x="605" y="256" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="12" font-weight="700" fill="#fff">Most critical signal</text>
+          <text x="605" y="272" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#86efac">General benchmarks</text>
+          <text x="605" y="288" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#86efac">cannot measure this</text>
+        </svg>
+        <div class="caption">Layer 1 (general capability) is the primary selection signal for base models but becomes table stakes for agents. Layer 3 (task-specific) barely matters for a base model selection — there is no deployment context yet — but becomes the most critical signal for any deployed agentic system. Layer 2 (safety and alignment) is non-negotiable at every level.</div>
+      </div>
 
-<h2>What Model Cards Tell Us</h2>
+      <h2>What Model Cards Tell Us</h2>
 
-<p>If you look at the model cards that labs publish alongside their releases — <a href="https://openai.com/index/gpt-4o-system-card/" target="_blank">OpenAI's for GPT-4o</a>, <a href="https://www.anthropic.com/news/claude-3-5-sonnet" target="_blank">Anthropic's for Claude 3.5 Sonnet</a>, <a href="https://storage.googleapis.com/deepmind-media/gemini/gemini_v1_5_report.pdf" target="_blank">Google's for Gemini 1.5 Pro</a> — you will see all three layers represented, but not equally weighted. General capability numbers sit prominently in the comparison tables. Safety evaluations get their own dedicated section, often running to several pages. Task-specific benchmarks appear selectively: coding benchmarks for models positioned toward developers, medical benchmarks for models pitched at healthcare applications.</p>
+      <p>If you look at the model cards that labs publish alongside their releases — <a href="https://openai.com/index/gpt-4o-system-card/" target="_blank">OpenAI's for GPT-4o</a>, <a href="https://www.anthropic.com/news/claude-3-5-sonnet" target="_blank">Anthropic's for Claude 3.5 Sonnet</a>, <a href="https://storage.googleapis.com/deepmind-media/gemini/gemini_v1_5_report.pdf" target="_blank">Google's for Gemini 1.5 Pro</a> — you will see all three layers represented, but not equally weighted. General capability numbers sit prominently in the comparison tables. Safety evaluations get their own dedicated section, often running to several pages. Task-specific benchmarks appear selectively: coding benchmarks for models positioned toward developers, medical benchmarks for models pitched at healthcare applications.</p>
 
-<p>What is interesting is where each lab chooses to place its emphasis. These are not just aesthetic choices. They reflect each lab's theory of what its audience most needs to know, and in some cases, what the lab is most proud of.</p>
+      <p>What is interesting is where each lab chooses to place its emphasis. These are not just aesthetic choices. They reflect each lab's theory of what its audience most needs to know, and in some cases, what the lab is most proud of.</p>
 
-<div class="figure">
-  <svg viewBox="0 0 700 390" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:#fff;">
-    <text x="350" y="24" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="14" font-weight="700" fill="#0f172a">Model Card Comparison: Structure and Emphasis by Lab</text>
+      <div class="figure">
+        <svg viewBox="0 0 700 390" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:#fff;">
+          <text x="350" y="24" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="14" font-weight="700" fill="#0f172a">Model Card Comparison: Structure and Emphasis by Lab</text>
 
-    <!-- OPENAI CARD -->
-    <rect x="10" y="36" width="214" height="344" rx="8" fill="#fff" stroke="#e2e8f0" stroke-width="1.5"/>
-    <rect x="10" y="36" width="214" height="44" rx="8" fill="#10a37f"/>
-    <rect x="10" y="62" width="214" height="18" fill="#10a37f"/>
-    <text x="117" y="55" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="13" font-weight="700" fill="#fff">OpenAI · GPT-4o</text>
-    <text x="117" y="72" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#d1fae5">Released May 2024</text>
-    <rect x="22" y="90" width="190" height="20" rx="4" fill="#f0fdf4"/>
-    <text x="117" y="104" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" font-weight="700" fill="#15803d">EMPHASIS: CAPABILITY-FIRST</text>
-    <text x="22" y="128" font-family="-apple-system,sans-serif" font-size="10" font-weight="700" fill="#6b7280" letter-spacing="0.05em">GENERAL CAPABILITY</text>
-    <text x="22" y="147" font-family="-apple-system,sans-serif" font-size="11" fill="#334155">MMLU (5-shot)</text>
-    <text x="212" y="147" text-anchor="end" font-family="-apple-system,sans-serif" font-size="11" font-weight="700" fill="#10a37f">88.7%</text>
-    <line x1="22" y1="153" x2="212" y2="153" stroke="#f1f5f9" stroke-width="1"/>
-    <text x="22" y="168" font-family="-apple-system,sans-serif" font-size="11" fill="#334155">MATH (0-shot)</text>
-    <text x="212" y="168" text-anchor="end" font-family="-apple-system,sans-serif" font-size="11" font-weight="700" fill="#10a37f">76.6%</text>
-    <line x1="22" y1="174" x2="212" y2="174" stroke="#f1f5f9" stroke-width="1"/>
-    <text x="22" y="189" font-family="-apple-system,sans-serif" font-size="11" fill="#334155">HumanEval (0-shot)</text>
-    <text x="212" y="189" text-anchor="end" font-family="-apple-system,sans-serif" font-size="11" font-weight="700" fill="#10a37f">90.2%</text>
-    <line x1="22" y1="195" x2="212" y2="195" stroke="#f1f5f9" stroke-width="1"/>
-    <text x="22" y="210" font-family="-apple-system,sans-serif" font-size="11" fill="#334155">GPQA Diamond</text>
-    <text x="212" y="210" text-anchor="end" font-family="-apple-system,sans-serif" font-size="11" font-weight="700" fill="#10a37f">53.6%</text>
-    <text x="22" y="232" font-family="-apple-system,sans-serif" font-size="10" font-weight="700" fill="#6b7280" letter-spacing="0.05em">SAFETY AND ALIGNMENT</text>
-    <rect x="22" y="238" width="190" height="52" rx="4" fill="#f8fafc"/>
-    <text x="117" y="258" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#94a3b8">TruthfulQA, BBQ bias evals,</text>
-    <text x="117" y="272" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#94a3b8">red-team results listed</text>
-    <text x="117" y="286" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#94a3b8">but not foregrounded</text>
-    <text x="22" y="310" font-family="-apple-system,sans-serif" font-size="10" font-weight="600" fill="#64748b">Relative page allocation</text>
-    <rect x="22" y="318" width="190" height="10" rx="5" fill="#e2e8f0"/>
-    <rect x="22" y="318" width="133" height="10" rx="5" fill="#10a37f"/>
-    <text x="22" y="344" font-family="-apple-system,sans-serif" font-size="9" fill="#94a3b8">Capability (70%)</text>
-    <text x="212" y="344" text-anchor="end" font-family="-apple-system,sans-serif" font-size="9" fill="#94a3b8">Safety (30%)</text>
-    <text x="117" y="366" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" font-style="italic" fill="#64748b">Raw capability numbers lead</text>
+          <!-- OPENAI CARD -->
+          <rect x="10" y="36" width="214" height="344" rx="8" fill="#fff" stroke="#e2e8f0" stroke-width="1.5"/>
+          <rect x="10" y="36" width="214" height="44" rx="8" fill="#10a37f"/>
+          <rect x="10" y="62" width="214" height="18" fill="#10a37f"/>
+          <text x="117" y="55" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="13" font-weight="700" fill="#fff">OpenAI · GPT-4o</text>
+          <text x="117" y="72" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#d1fae5">Released May 2024</text>
+          <rect x="22" y="90" width="190" height="20" rx="4" fill="#f0fdf4"/>
+          <text x="117" y="104" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" font-weight="700" fill="#15803d">EMPHASIS: CAPABILITY-FIRST</text>
+          <text x="22" y="128" font-family="-apple-system,sans-serif" font-size="10" font-weight="700" fill="#6b7280" letter-spacing="0.05em">GENERAL CAPABILITY</text>
+          <text x="22" y="147" font-family="-apple-system,sans-serif" font-size="11" fill="#334155">MMLU (5-shot)</text>
+          <text x="212" y="147" text-anchor="end" font-family="-apple-system,sans-serif" font-size="11" font-weight="700" fill="#10a37f">88.7%</text>
+          <line x1="22" y1="153" x2="212" y2="153" stroke="#f1f5f9" stroke-width="1"/>
+          <text x="22" y="168" font-family="-apple-system,sans-serif" font-size="11" fill="#334155">MATH (0-shot)</text>
+          <text x="212" y="168" text-anchor="end" font-family="-apple-system,sans-serif" font-size="11" font-weight="700" fill="#10a37f">76.6%</text>
+          <line x1="22" y1="174" x2="212" y2="174" stroke="#f1f5f9" stroke-width="1"/>
+          <text x="22" y="189" font-family="-apple-system,sans-serif" font-size="11" fill="#334155">HumanEval (0-shot)</text>
+          <text x="212" y="189" text-anchor="end" font-family="-apple-system,sans-serif" font-size="11" font-weight="700" fill="#10a37f">90.2%</text>
+          <line x1="22" y1="195" x2="212" y2="195" stroke="#f1f5f9" stroke-width="1"/>
+          <text x="22" y="210" font-family="-apple-system,sans-serif" font-size="11" fill="#334155">GPQA Diamond</text>
+          <text x="212" y="210" text-anchor="end" font-family="-apple-system,sans-serif" font-size="11" font-weight="700" fill="#10a37f">53.6%</text>
+          <text x="22" y="232" font-family="-apple-system,sans-serif" font-size="10" font-weight="700" fill="#6b7280" letter-spacing="0.05em">SAFETY AND ALIGNMENT</text>
+          <rect x="22" y="238" width="190" height="52" rx="4" fill="#f8fafc"/>
+          <text x="117" y="258" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#94a3b8">TruthfulQA, BBQ bias evals,</text>
+          <text x="117" y="272" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#94a3b8">red-team results listed</text>
+          <text x="117" y="286" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#94a3b8">but not foregrounded</text>
+          <text x="22" y="310" font-family="-apple-system,sans-serif" font-size="10" font-weight="600" fill="#64748b">Relative page allocation</text>
+          <rect x="22" y="318" width="190" height="10" rx="5" fill="#e2e8f0"/>
+          <rect x="22" y="318" width="133" height="10" rx="5" fill="#10a37f"/>
+          <text x="22" y="344" font-family="-apple-system,sans-serif" font-size="9" fill="#94a3b8">Capability (70%)</text>
+          <text x="212" y="344" text-anchor="end" font-family="-apple-system,sans-serif" font-size="9" fill="#94a3b8">Safety (30%)</text>
+          <text x="117" y="366" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" font-style="italic" fill="#64748b">Raw capability numbers lead</text>
 
-    <!-- ANTHROPIC CARD -->
-    <rect x="243" y="36" width="214" height="344" rx="8" fill="#fff" stroke="#e2e8f0" stroke-width="1.5"/>
-    <rect x="243" y="36" width="214" height="44" rx="8" fill="#cc785c"/>
-    <rect x="243" y="62" width="214" height="18" fill="#cc785c"/>
-    <text x="350" y="55" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="12" font-weight="700" fill="#fff">Anthropic · Claude 3.5 Sonnet</text>
-    <text x="350" y="72" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#fde8d8">Released October 2024</text>
-    <rect x="255" y="90" width="190" height="20" rx="4" fill="#fdf2ee"/>
-    <text x="350" y="104" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" font-weight="700" fill="#cc785c">EMPHASIS: SAFETY CO-EQUAL</text>
-    <text x="255" y="128" font-family="-apple-system,sans-serif" font-size="10" font-weight="700" fill="#6b7280" letter-spacing="0.05em">GENERAL CAPABILITY</text>
-    <text x="255" y="147" font-family="-apple-system,sans-serif" font-size="11" fill="#334155">MMLU (5-shot)</text>
-    <text x="445" y="147" text-anchor="end" font-family="-apple-system,sans-serif" font-size="11" font-weight="700" fill="#cc785c">88.7%</text>
-    <line x1="255" y1="153" x2="445" y2="153" stroke="#f1f5f9" stroke-width="1"/>
-    <text x="255" y="168" font-family="-apple-system,sans-serif" font-size="11" fill="#334155">HumanEval (0-shot)</text>
-    <text x="445" y="168" text-anchor="end" font-family="-apple-system,sans-serif" font-size="11" font-weight="700" fill="#cc785c">92.0%</text>
-    <line x1="255" y1="174" x2="445" y2="174" stroke="#f1f5f9" stroke-width="1"/>
-    <text x="255" y="189" font-family="-apple-system,sans-serif" font-size="11" fill="#334155">GPQA Diamond</text>
-    <text x="445" y="189" text-anchor="end" font-family="-apple-system,sans-serif" font-size="11" font-weight="700" fill="#cc785c">59.4%</text>
-    <line x1="255" y1="195" x2="445" y2="195" stroke="#f1f5f9" stroke-width="1"/>
-    <text x="255" y="210" font-family="-apple-system,sans-serif" font-size="11" fill="#334155">MATH (0-shot)</text>
-    <text x="445" y="210" text-anchor="end" font-family="-apple-system,sans-serif" font-size="11" font-weight="700" fill="#cc785c">71.1%</text>
-    <text x="255" y="232" font-family="-apple-system,sans-serif" font-size="10" font-weight="700" fill="#6b7280" letter-spacing="0.05em">SAFETY AND ALIGNMENT</text>
-    <rect x="255" y="238" width="190" height="52" rx="4" fill="#fdf2ee" stroke="#f5c9b3" stroke-width="1"/>
-    <text x="350" y="256" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" font-weight="600" fill="#cc785c">Constitutional AI, RSP policy,</text>
-    <text x="350" y="270" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#9a5240">CBRN refusals, persuasion</text>
-    <text x="350" y="284" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#9a5240">resistance — dedicated section</text>
-    <text x="255" y="310" font-family="-apple-system,sans-serif" font-size="10" font-weight="600" fill="#64748b">Relative page allocation</text>
-    <rect x="255" y="318" width="190" height="10" rx="5" fill="#e2e8f0"/>
-    <rect x="255" y="318" width="95" height="10" rx="5" fill="#cc785c"/>
-    <rect x="350" y="318" width="95" height="10" rx="0" fill="#f59e0b"/>
-    <text x="255" y="344" font-family="-apple-system,sans-serif" font-size="9" fill="#94a3b8">Capability (50%)</text>
-    <text x="445" y="344" text-anchor="end" font-family="-apple-system,sans-serif" font-size="9" fill="#94a3b8">Safety (50%)</text>
-    <text x="350" y="366" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" font-style="italic" fill="#64748b">Safety given equal billing</text>
+          <!-- ANTHROPIC CARD -->
+          <rect x="243" y="36" width="214" height="344" rx="8" fill="#fff" stroke="#e2e8f0" stroke-width="1.5"/>
+          <rect x="243" y="36" width="214" height="44" rx="8" fill="#cc785c"/>
+          <rect x="243" y="62" width="214" height="18" fill="#cc785c"/>
+          <text x="350" y="55" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="12" font-weight="700" fill="#fff">Anthropic · Claude 3.5 Sonnet</text>
+          <text x="350" y="72" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#fde8d8">Released October 2024</text>
+          <rect x="255" y="90" width="190" height="20" rx="4" fill="#fdf2ee"/>
+          <text x="350" y="104" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" font-weight="700" fill="#cc785c">EMPHASIS: SAFETY CO-EQUAL</text>
+          <text x="255" y="128" font-family="-apple-system,sans-serif" font-size="10" font-weight="700" fill="#6b7280" letter-spacing="0.05em">GENERAL CAPABILITY</text>
+          <text x="255" y="147" font-family="-apple-system,sans-serif" font-size="11" fill="#334155">MMLU (5-shot)</text>
+          <text x="445" y="147" text-anchor="end" font-family="-apple-system,sans-serif" font-size="11" font-weight="700" fill="#cc785c">88.7%</text>
+          <line x1="255" y1="153" x2="445" y2="153" stroke="#f1f5f9" stroke-width="1"/>
+          <text x="255" y="168" font-family="-apple-system,sans-serif" font-size="11" fill="#334155">HumanEval (0-shot)</text>
+          <text x="445" y="168" text-anchor="end" font-family="-apple-system,sans-serif" font-size="11" font-weight="700" fill="#cc785c">92.0%</text>
+          <line x1="255" y1="174" x2="445" y2="174" stroke="#f1f5f9" stroke-width="1"/>
+          <text x="255" y="189" font-family="-apple-system,sans-serif" font-size="11" fill="#334155">GPQA Diamond</text>
+          <text x="445" y="189" text-anchor="end" font-family="-apple-system,sans-serif" font-size="11" font-weight="700" fill="#cc785c">59.4%</text>
+          <line x1="255" y1="195" x2="445" y2="195" stroke="#f1f5f9" stroke-width="1"/>
+          <text x="255" y="210" font-family="-apple-system,sans-serif" font-size="11" fill="#334155">MATH (0-shot)</text>
+          <text x="445" y="210" text-anchor="end" font-family="-apple-system,sans-serif" font-size="11" font-weight="700" fill="#cc785c">71.1%</text>
+          <text x="255" y="232" font-family="-apple-system,sans-serif" font-size="10" font-weight="700" fill="#6b7280" letter-spacing="0.05em">SAFETY AND ALIGNMENT</text>
+          <rect x="255" y="238" width="190" height="52" rx="4" fill="#fdf2ee" stroke="#f5c9b3" stroke-width="1"/>
+          <text x="350" y="256" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" font-weight="600" fill="#cc785c">Constitutional AI, RSP policy,</text>
+          <text x="350" y="270" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#9a5240">CBRN refusals, persuasion</text>
+          <text x="350" y="284" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#9a5240">resistance — dedicated section</text>
+          <text x="255" y="310" font-family="-apple-system,sans-serif" font-size="10" font-weight="600" fill="#64748b">Relative page allocation</text>
+          <rect x="255" y="318" width="190" height="10" rx="5" fill="#e2e8f0"/>
+          <rect x="255" y="318" width="95" height="10" rx="5" fill="#cc785c"/>
+          <rect x="350" y="318" width="95" height="10" rx="0" fill="#f59e0b"/>
+          <text x="255" y="344" font-family="-apple-system,sans-serif" font-size="9" fill="#94a3b8">Capability (50%)</text>
+          <text x="445" y="344" text-anchor="end" font-family="-apple-system,sans-serif" font-size="9" fill="#94a3b8">Safety (50%)</text>
+          <text x="350" y="366" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" font-style="italic" fill="#64748b">Safety given equal billing</text>
 
-    <!-- GOOGLE CARD -->
-    <rect x="476" y="36" width="214" height="344" rx="8" fill="#fff" stroke="#e2e8f0" stroke-width="1.5"/>
-    <rect x="476" y="36" width="214" height="44" rx="8" fill="#4285f4"/>
-    <rect x="476" y="62" width="214" height="18" fill="#4285f4"/>
-    <text x="583" y="55" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="13" font-weight="700" fill="#fff">Google · Gemini 1.5 Pro</text>
-    <text x="583" y="72" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#dbeafe">Released February 2024</text>
-    <rect x="488" y="90" width="190" height="20" rx="4" fill="#eff6ff"/>
-    <text x="583" y="104" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" font-weight="700" fill="#4285f4">EMPHASIS: DOMAIN AND SCALE</text>
-    <text x="488" y="128" font-family="-apple-system,sans-serif" font-size="10" font-weight="700" fill="#6b7280" letter-spacing="0.05em">GENERAL CAPABILITY</text>
-    <text x="488" y="147" font-family="-apple-system,sans-serif" font-size="11" fill="#334155">MMLU (5-shot)</text>
-    <text x="678" y="147" text-anchor="end" font-family="-apple-system,sans-serif" font-size="11" font-weight="700" fill="#4285f4">85.9%</text>
-    <line x1="488" y1="153" x2="678" y2="153" stroke="#f1f5f9" stroke-width="1"/>
-    <text x="488" y="168" font-family="-apple-system,sans-serif" font-size="11" fill="#334155">HumanEval (0-shot)</text>
-    <text x="678" y="168" text-anchor="end" font-family="-apple-system,sans-serif" font-size="11" font-weight="700" fill="#4285f4">84.1%</text>
-    <line x1="488" y1="174" x2="678" y2="174" stroke="#f1f5f9" stroke-width="1"/>
-    <text x="488" y="189" font-family="-apple-system,sans-serif" font-size="11" fill="#334155">GPQA Diamond</text>
-    <text x="678" y="189" text-anchor="end" font-family="-apple-system,sans-serif" font-size="11" font-weight="700" fill="#4285f4">46.2%</text>
-    <line x1="488" y1="195" x2="678" y2="195" stroke="#f1f5f9" stroke-width="1"/>
-    <text x="488" y="210" font-family="-apple-system,sans-serif" font-size="11" fill="#334155">MATH (0-shot)</text>
-    <text x="678" y="210" text-anchor="end" font-family="-apple-system,sans-serif" font-size="11" font-weight="700" fill="#4285f4">67.7%</text>
-    <text x="488" y="232" font-family="-apple-system,sans-serif" font-size="10" font-weight="700" fill="#6b7280" letter-spacing="0.05em">DOMAIN AND MULTIMODAL</text>
-    <rect x="488" y="238" width="190" height="52" rx="4" fill="#eff6ff" stroke="#bfdbfe" stroke-width="1"/>
-    <text x="583" y="256" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" font-weight="600" fill="#4285f4">Medical QA, multilingual,</text>
-    <text x="583" y="270" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#1d4ed8">video understanding,</text>
-    <text x="583" y="284" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#1d4ed8">long-context benchmarks</text>
-    <text x="488" y="310" font-family="-apple-system,sans-serif" font-size="10" font-weight="600" fill="#64748b">Relative page allocation</text>
-    <rect x="488" y="318" width="190" height="10" rx="5" fill="#e2e8f0"/>
-    <rect x="488" y="318" width="76" height="10" rx="5" fill="#4285f4"/>
-    <rect x="564" y="318" width="38" height="10" rx="0" fill="#a5b4fc" opacity="0.8"/>
-    <rect x="602" y="318" width="76" height="10" rx="0" fill="#1d4ed8"/>
-    <text x="488" y="344" font-family="-apple-system,sans-serif" font-size="9" fill="#94a3b8">Capability (40%)</text>
-    <text x="583" y="344" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="9" fill="#94a3b8">Safety (20%)</text>
-    <text x="678" y="344" text-anchor="end" font-family="-apple-system,sans-serif" font-size="9" fill="#94a3b8">Domain (40%)</text>
-    <text x="583" y="366" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" font-style="italic" fill="#64748b">Domain use cases foregrounded</text>
-  </svg>
-  <div class="caption">Simplified model card excerpts based on publicly documented evaluations. Bar allocations are approximate representations of relative page emphasis, not exact measurements. Anthropic gives safety evaluations co-equal prominence with capability benchmarks — both segments run to comparable depth — consistent with its Constitutional AI and Responsible Scaling Policy commitments. OpenAI leads with raw capability numbers. Google foregrounds domain-specific and multimodal benchmarks alongside general capability, reflecting its positioning across consumer and enterprise verticals. All three labs publish all three layers — the difference is what gets headlined.</div>
-</div>
+          <!-- GOOGLE CARD -->
+          <rect x="476" y="36" width="214" height="344" rx="8" fill="#fff" stroke="#e2e8f0" stroke-width="1.5"/>
+          <rect x="476" y="36" width="214" height="44" rx="8" fill="#4285f4"/>
+          <rect x="476" y="62" width="214" height="18" fill="#4285f4"/>
+          <text x="583" y="55" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="13" font-weight="700" fill="#fff">Google · Gemini 1.5 Pro</text>
+          <text x="583" y="72" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#dbeafe">Released February 2024</text>
+          <rect x="488" y="90" width="190" height="20" rx="4" fill="#eff6ff"/>
+          <text x="583" y="104" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" font-weight="700" fill="#4285f4">EMPHASIS: DOMAIN AND SCALE</text>
+          <text x="488" y="128" font-family="-apple-system,sans-serif" font-size="10" font-weight="700" fill="#6b7280" letter-spacing="0.05em">GENERAL CAPABILITY</text>
+          <text x="488" y="147" font-family="-apple-system,sans-serif" font-size="11" fill="#334155">MMLU (5-shot)</text>
+          <text x="678" y="147" text-anchor="end" font-family="-apple-system,sans-serif" font-size="11" font-weight="700" fill="#4285f4">85.9%</text>
+          <line x1="488" y1="153" x2="678" y2="153" stroke="#f1f5f9" stroke-width="1"/>
+          <text x="488" y="168" font-family="-apple-system,sans-serif" font-size="11" fill="#334155">HumanEval (0-shot)</text>
+          <text x="678" y="168" text-anchor="end" font-family="-apple-system,sans-serif" font-size="11" font-weight="700" fill="#4285f4">84.1%</text>
+          <line x1="488" y1="174" x2="678" y2="174" stroke="#f1f5f9" stroke-width="1"/>
+          <text x="488" y="189" font-family="-apple-system,sans-serif" font-size="11" fill="#334155">GPQA Diamond</text>
+          <text x="678" y="189" text-anchor="end" font-family="-apple-system,sans-serif" font-size="11" font-weight="700" fill="#4285f4">46.2%</text>
+          <line x1="488" y1="195" x2="678" y2="195" stroke="#f1f5f9" stroke-width="1"/>
+          <text x="488" y="210" font-family="-apple-system,sans-serif" font-size="11" fill="#334155">MATH (0-shot)</text>
+          <text x="678" y="210" text-anchor="end" font-family="-apple-system,sans-serif" font-size="11" font-weight="700" fill="#4285f4">67.7%</text>
+          <text x="488" y="232" font-family="-apple-system,sans-serif" font-size="10" font-weight="700" fill="#6b7280" letter-spacing="0.05em">DOMAIN AND MULTIMODAL</text>
+          <rect x="488" y="238" width="190" height="52" rx="4" fill="#eff6ff" stroke="#bfdbfe" stroke-width="1"/>
+          <text x="583" y="256" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" font-weight="600" fill="#4285f4">Medical QA, multilingual,</text>
+          <text x="583" y="270" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#1d4ed8">video understanding,</text>
+          <text x="583" y="284" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#1d4ed8">long-context benchmarks</text>
+          <text x="488" y="310" font-family="-apple-system,sans-serif" font-size="10" font-weight="600" fill="#64748b">Relative page allocation</text>
+          <rect x="488" y="318" width="190" height="10" rx="5" fill="#e2e8f0"/>
+          <rect x="488" y="318" width="76" height="10" rx="5" fill="#4285f4"/>
+          <rect x="564" y="318" width="38" height="10" rx="0" fill="#a5b4fc" opacity="0.8"/>
+          <rect x="602" y="318" width="76" height="10" rx="0" fill="#1d4ed8"/>
+          <text x="488" y="344" font-family="-apple-system,sans-serif" font-size="9" fill="#94a3b8">Capability (40%)</text>
+          <text x="583" y="344" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="9" fill="#94a3b8">Safety (20%)</text>
+          <text x="678" y="344" text-anchor="end" font-family="-apple-system,sans-serif" font-size="9" fill="#94a3b8">Domain (40%)</text>
+          <text x="583" y="366" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" font-style="italic" fill="#64748b">Domain use cases foregrounded</text>
+        </svg>
+        <div class="caption">Simplified model card excerpts based on publicly documented evaluations. Bar allocations are approximate representations of relative page emphasis, not exact measurements. Anthropic gives safety evaluations co-equal prominence with capability benchmarks — both segments run to comparable depth — consistent with its Constitutional AI and Responsible Scaling Policy commitments. OpenAI leads with raw capability numbers. Google foregrounds domain-specific and multimodal benchmarks alongside general capability, reflecting its positioning across consumer and enterprise verticals. All three labs publish all three layers — the difference is what gets headlined.</div>
+      </div>
 
-<h2>The Benchmark Landscape</h2>
+      <h2>The Benchmark Landscape</h2>
 
-<p>For text-based language models, the evaluation toolbox is relatively mature. General capability benchmarks like MMLU have been around since 2021. Coding benchmarks like HumanEval and <a href="https://www.swebench.com" target="_blank">SWE-bench</a> have become increasingly important as models are applied to software engineering. SWE-bench in particular is worth noting: rather than testing whether a model can write code, it tests whether a model can autonomously resolve real GitHub issues — a much harder and more realistic proxy for practical utility.</p>
+      <p>For text-based language models, the evaluation toolbox is relatively mature. General capability benchmarks like MMLU have been around since 2021. Coding benchmarks like HumanEval and <a href="https://www.swebench.com" target="_blank">SWE-bench</a> have become increasingly important as models are applied to software engineering. SWE-bench in particular is worth noting: rather than testing whether a model can write code, it tests whether a model can autonomously resolve real GitHub issues — a much harder and more realistic proxy for practical utility.</p>
 
-<table>
-  <thead>
-    <tr>
-      <th>Benchmark</th>
-      <th>What it Tests</th>
-      <th>Layer</th>
-      <th>Notes</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td><a href="https://arxiv.org/abs/2009.03300" target="_blank"><strong>MMLU</strong></a><br><span style="font-size:11px;color:#94a3b8;">Massive Multitask Language Understanding</span></td>
-      <td>Knowledge across 57 academic subjects</td>
-      <td><span class="layer-badge l1">Capability</span></td>
-      <td>Most referenced general benchmark; increasingly contaminated by training</td>
-    </tr>
-    <tr>
-      <td><a href="https://allenai.org/data/arc" target="_blank"><strong>ARC-Challenge</strong></a><br><span style="font-size:11px;color:#94a3b8;">AI2 Reasoning Challenge</span></td>
-      <td>Scientific reasoning at grade-school level</td>
-      <td><span class="layer-badge l1">Capability</span></td>
-      <td>Now mostly saturated by frontier models; less differentiating</td>
-    </tr>
-    <tr>
-      <td><a href="https://arxiv.org/abs/2103.03874" target="_blank"><strong>MATH</strong></a></td>
-      <td>Competition-level mathematics</td>
-      <td><span class="layer-badge l1">Capability</span></td>
-      <td>Still differentiates frontier from mid-tier models meaningfully</td>
-    </tr>
-    <tr>
-      <td><a href="https://github.com/openai/human-eval" target="_blank"><strong>HumanEval</strong></a></td>
-      <td>Code generation from docstrings</td>
-      <td><span class="layer-badge l1">Capability</span></td>
-      <td>Single-function scope; SWE-bench is a more realistic test</td>
-    </tr>
-    <tr>
-      <td><a href="https://www.swebench.com" target="_blank"><strong>SWE-bench Verified</strong></a></td>
-      <td>Autonomous resolution of real GitHub issues</td>
-      <td><span class="layer-badge l1">Capability</span> <span class="layer-badge l3">Task</span></td>
-      <td>Multi-step agentic coding; harder and more predictive of real use</td>
-    </tr>
-    <tr>
-      <td><a href="https://arxiv.org/abs/2311.12022" target="_blank"><strong>GPQA Diamond</strong></a><br><span style="font-size:11px;color:#94a3b8;">Graduate-Level Google-Proof Q&amp;A</span></td>
-      <td>Expert-level science Q&amp;A written by PhD researchers</td>
-      <td><span class="layer-badge l1">Capability</span></td>
-      <td>Designed to resist contamination; remains a meaningful signal</td>
-    </tr>
-    <tr>
-      <td><a href="https://github.com/sylinrl/TruthfulQA" target="_blank"><strong>TruthfulQA</strong></a></td>
-      <td>Factual accuracy and hallucination resistance</td>
-      <td><span class="layer-badge l2">Safety</span></td>
-      <td>Tests calibration; can be overfitted through targeted training</td>
-    </tr>
-    <tr>
-      <td><strong>FID / CLIP score</strong><br><span style="font-size:11px;color:#94a3b8;">Fréchet Inception Distance / Contrastive Language-Image Pre-training</span></td>
-      <td>Image quality and text-image alignment</td>
-      <td><span class="layer-badge l1">Capability</span></td>
-      <td>Narrow technical measures; human preference studies still required</td>
-    </tr>
-    <tr>
-      <td><a href="https://huggingface.co/papers/2311.12983" target="_blank"><strong>GAIA</strong></a><br><span style="font-size:11px;color:#94a3b8;">General AI Assistants</span></td>
-      <td>Multi-step research tasks: web browsing, file manipulation, reasoning</td>
-      <td><span class="layer-badge l3">Task</span></td>
-      <td>Purpose-built for agentic models; growing adoption</td>
-    </tr>
-    <tr>
-      <td><strong>TerminalBench</strong></td>
-      <td>Terminal task completion in shell and file system environments</td>
-      <td><span class="layer-badge l3">Task</span></td>
-      <td>Purpose-built for agentic models; still maturing as a benchmark</td>
-    </tr>
-  </tbody>
-</table>
+      <table>
+        <thead>
+          <tr>
+            <th>Benchmark</th>
+            <th>What it Tests</th>
+            <th>Layer</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><a href="https://arxiv.org/abs/2009.03300" target="_blank"><strong>MMLU</strong></a><br><span style="font-size:11px;color:#94a3b8;">Massive Multitask Language Understanding</span></td>
+            <td>Knowledge across 57 academic subjects</td>
+            <td>Capability</td>
+            <td>Most referenced general benchmark; increasingly contaminated by training</td>
+          </tr>
+          <tr>
+            <td><a href="https://allenai.org/data/arc" target="_blank"><strong>ARC-Challenge</strong></a><br><span style="font-size:11px;color:#94a3b8;">AI2 Reasoning Challenge</span></td>
+            <td>Scientific reasoning at grade-school level</td>
+            <td>Capability</td>
+            <td>Now mostly saturated by frontier models; less differentiating</td>
+          </tr>
+          <tr>
+            <td><a href="https://arxiv.org/abs/2103.03874" target="_blank"><strong>MATH</strong></a></td>
+            <td>Competition-level mathematics</td>
+            <td>Capability</td>
+            <td>Still differentiates frontier from mid-tier models meaningfully</td>
+          </tr>
+          <tr>
+            <td><a href="https://github.com/openai/human-eval" target="_blank"><strong>HumanEval</strong></a></td>
+            <td>Code generation from docstrings</td>
+            <td>Capability</td>
+            <td>Single-function scope; SWE-bench is a more realistic test</td>
+          </tr>
+          <tr>
+            <td><a href="https://www.swebench.com" target="_blank"><strong>SWE-bench Verified</strong></a></td>
+            <td>Autonomous resolution of real GitHub issues</td>
+            <td>Capability / Task</td>
+            <td>Multi-step agentic coding; harder and more predictive of real use</td>
+          </tr>
+          <tr>
+            <td><a href="https://arxiv.org/abs/2311.12022" target="_blank"><strong>GPQA Diamond</strong></a><br><span style="font-size:11px;color:#94a3b8;">Graduate-Level Google-Proof Q&amp;A</span></td>
+            <td>Expert-level science Q&amp;A written by PhD researchers</td>
+            <td>Capability</td>
+            <td>Designed to resist contamination; remains a meaningful signal</td>
+          </tr>
+          <tr>
+            <td><a href="https://github.com/sylinrl/TruthfulQA" target="_blank"><strong>TruthfulQA</strong></a></td>
+            <td>Factual accuracy and hallucination resistance</td>
+            <td>Safety</td>
+            <td>Tests calibration; can be overfitted through targeted training</td>
+          </tr>
+          <tr>
+            <td><strong>FID / CLIP score</strong><br><span style="font-size:11px;color:#94a3b8;">Fréchet Inception Distance / Contrastive Language-Image Pre-training</span></td>
+            <td>Image quality and text-image alignment</td>
+            <td>Capability</td>
+            <td>Narrow technical measures; human preference studies still required</td>
+          </tr>
+          <tr>
+            <td><a href="https://huggingface.co/papers/2311.12983" target="_blank"><strong>GAIA</strong></a><br><span style="font-size:11px;color:#94a3b8;">General AI Assistants</span></td>
+            <td>Multi-step research tasks: web browsing, file manipulation, reasoning</td>
+            <td>Task</td>
+            <td>Purpose-built for agentic models; growing adoption</td>
+          </tr>
+          <tr>
+            <td><strong>TerminalBench</strong></td>
+            <td>Terminal task completion in shell and file system environments</td>
+            <td>Task</td>
+            <td>Purpose-built for agentic models; still maturing as a benchmark</td>
+          </tr>
+        </tbody>
+      </table>
 
-<p>As you move away from text, the evaluation landscape becomes thinner and less reliable. For image generation, metrics like FID and CLIP scores exist, but they measure narrow technical properties rather than whether the image actually looks good or correctly depicts the scene you described. The field largely falls back on human preference studies: show raters pairs of images, ask which is better, aggregate the results.</p>
+      <p>As you move away from text, the evaluation landscape becomes thinner and less reliable. For image generation, metrics like FID and CLIP scores exist, but they measure narrow technical properties rather than whether the image actually looks good or correctly depicts the scene you described. The field largely falls back on human preference studies: show raters pairs of images, ask which is better, aggregate the results.</p>
 
-<p>Video is even harder. When OpenAI launched Sora, the evaluation was almost entirely qualitative — curated demo clips, not benchmark numbers. This was not a failure of rigor; it reflected the honest state of video generation metrics, which largely cannot capture what makes a video impressive or useful. Human preference data was the only credible signal.</p>
+      <p>Video is even harder. When OpenAI launched Sora, the evaluation was almost entirely qualitative — curated demo clips, not benchmark numbers. This was not a failure of rigor; it reflected the honest state of video generation metrics, which largely cannot capture what makes a video impressive or useful. Human preference data was the only credible signal.</p>
 
-<p>For agentic models, benchmarks like <a href="https://huggingface.co/papers/2311.12983" target="_blank">GAIA</a> and TerminalBench are emerging, but agent evaluation carries its own structural challenges. An agent's performance depends not just on the model itself but on the tools it has access to, the quality of its system prompt, the reliability of the APIs it calls, and the specific context it is operating in. Two agents with the same underlying model can perform very differently depending on configuration. Benchmarking the model in isolation tells you something — but not how the deployed system will actually perform.</p>
+      <p>For agentic models, benchmarks like <a href="https://huggingface.co/papers/2311.12983" target="_blank">GAIA</a> and TerminalBench are emerging, but agent evaluation carries its own structural challenges. An agent's performance depends not just on the model itself but on the tools it has access to, the quality of its system prompt, the reliability of the APIs it calls, and the specific context it is operating in. Two agents with the same underlying model can perform very differently depending on configuration. Benchmarking the model in isolation tells you something — but not how the deployed system will actually perform.</p>
 
-<h2>Why Evals Are Imperfect Signals</h2>
+      <h2>Why Evals Are Imperfect Signals</h2>
 
-<p>The most important thing to understand about benchmarks is that they degrade over time. If the evaluation criteria are static and public, then models can be — and are — trained on them. What starts as a meaningful test of generalization becomes, over several training iterations, closer to a memorized dataset. Researchers call this "benchmark contamination," and it is endemic to the field.</p>
+      <p>The most important thing to understand about benchmarks is that they degrade over time. If the evaluation criteria are static and public, then models can be — and are — trained on them. What starts as a meaningful test of generalization becomes, over several training iterations, closer to a memorized dataset. Researchers call this "benchmark contamination," and it is endemic to the field.</p>
 
-<p>A model that scores 90% on MMLU in 2025 is not necessarily more capable than one that scored 85% in 2023. The benchmark may simply be closer to its training distribution. This is why new, harder benchmarks keep appearing — ARC-AGI, GPQA, Humanity's Last Exam — each trying to stay one step ahead of models that are increasingly good at acing tests that have already been published.</p>
+      <p>A model that scores 90% on MMLU in 2025 is not necessarily more capable than one that scored 85% in 2023. The benchmark may simply be closer to its training distribution. This is why new, harder benchmarks keep appearing — ARC-AGI, GPQA, Humanity's Last Exam — each trying to stay one step ahead of models that are increasingly good at acing tests that have already been published.</p>
 
-<div class="warning-box">
-  <div class="label">The Contamination Problem in Practice</div>
-  The contamination problem is most acute for general capability benchmarks, where test sets are public and fixed. Safety evals are somewhat more resistant, because red-teaming is iterative and adversarial — new attack vectors keep being discovered. Task-specific evals, especially custom ones, are the most robust, because models have never seen them. As you move from general to task-specific, benchmarks become less gameable and more meaningful.
-</div>
+      <div class="warning-box">
+        <div class="label">The Contamination Problem in Practice</div>
+        The contamination problem is most acute for general capability benchmarks, where test sets are public and fixed. Safety evals are somewhat more resistant, because red-teaming is iterative and adversarial — new attack vectors keep being discovered. Task-specific evals, especially custom ones, are the most robust, because models have never seen them. As you move from general to task-specific, benchmarks become less gameable and more meaningful.
+      </div>
 
-<p>Notice what happens as you move away from text toward images, video, and agents: the field falls back on human preference data faster, automated metrics become less trustworthy, and the benchmarks that exist tend to measure narrow technical properties rather than the thing you actually care about. The unsexy truth of AI evaluation is that thousands of hours of human annotation — real people rating outputs — remain the bedrock of both training and evaluation for anything that is not text. The same human judgment that powered RLHF in the early days of ChatGPT is still the gold standard for evaluating whether a generated video looks good, whether an agent completed a task correctly, or whether a curated digest actually reflects what its reader cares about.</p>
+      <p>Notice what happens as you move away from text toward images, video, and agents: the field falls back on human preference data faster, automated metrics become less trustworthy, and the benchmarks that exist tend to measure narrow technical properties rather than the thing you actually care about. The unsexy truth of AI evaluation is that thousands of hours of human annotation — real people rating outputs — remain the bedrock of both training and evaluation for anything that is not text. The same human judgment that powered RLHF in the early days of ChatGPT is still the gold standard for evaluating whether a generated video looks good, whether an agent completed a task correctly, or whether a curated digest actually reflects what its reader cares about.</p>
 
-<p>For agents and multimodal outputs, building your own eval framework is not just a reasonable choice. In many cases, it is the only rigorous one.</p>
+      <p>For agents and multimodal outputs, building your own eval framework is not just a reasonable choice. In many cases, it is the only rigorous one.</p>
 
-<h2>So What Should You Actually Use?</h2>
+      <h2>So What Should You Actually Use?</h2>
 
-<p>My professor at Kellogg, Josh D'Arcy, raised a point in a seminar that I keep coming back to: he is skeptical about looking at benchmark X to decide which model to use. Not because the benchmarks are worthless — they are useful for shortlisting and for verifying that basic thresholds are met. But they are generic by design. If you are building a legal research tool, MMLU does not tell you how well the model reads contracts. If you are building a customer support bot, HumanEval does not tell you how well the model handles edge-case refund requests.</p>
+      <p>My professor at Kellogg, Josh D'Arcy, raised a point in a seminar that I keep coming back to: he is skeptical about looking at benchmark X to decide which model to use. Not because the benchmarks are worthless — they are useful for shortlisting and for verifying that basic thresholds are met. But they are generic by design. If you are building a legal research tool, MMLU does not tell you how well the model reads contracts. If you are building a customer support bot, HumanEval does not tell you how well the model handles edge-case refund requests.</p>
 
-<p>The practical implication is that some evals should always be in place. Safety and alignment evals are non-negotiable regardless of use case — you want to know that a model will not behave in harmful ways before you deploy it anywhere. But once you have crossed that baseline, picking a model based on generic capability benchmarks alone is not best practice. Everyone is optimizing for something different. And there is a price-performance dimension that benchmarks rarely capture.</p>
+      <p>The practical implication is that some evals should always be in place. Safety and alignment evals are non-negotiable regardless of use case — you want to know that a model will not behave in harmful ways before you deploy it anywhere. But once you have crossed that baseline, picking a model based on generic capability benchmarks alone is not best practice. Everyone is optimizing for something different. And there is a price-performance dimension that benchmarks rarely capture.</p>
 
-<p>In my own project — building an agentic daily digest that curates a personalised morning newsletter every day — I went through several model iterations. In v1, I used free-tier open-source models via OpenRouter: Llama 3.3 70B, DeepSeek R1, Gemma. Some of these technically benchmark comparably to or better than Claude Haiku on certain general capability tasks. But in practice, Haiku won, and it was not close. Free-tier models were flaky: rate limits kicked in mid-pipeline, model availability varied, and the structured output I needed was not consistently reliable. Haiku cost $0.018 per day but delivered consistent quality and fast inference. The right model for a production task is not always the one with the highest benchmark score — it is the one that performs your specific task reliably, at a price you can sustain.</p>
+      <p>In my own project — building an agentic daily digest that curates a personalised morning newsletter every day — I went through several model iterations. In v1, I used free-tier open-source models via OpenRouter: Llama 3.3 70B, DeepSeek R1, Gemma. Some of these technically benchmark comparably to or better than Claude Haiku on certain general capability tasks. But in practice, Haiku won, and it was not close. Free-tier models were flaky: rate limits kicked in mid-pipeline, model availability varied, and the structured output I needed was not consistently reliable. Haiku cost $0.018 per day but delivered consistent quality and fast inference. The right model for a production task is not always the one with the highest benchmark score — it is the one that performs your specific task reliably, at a price you can sustain.</p>
 
-<div class="insight-box">
-  <div class="label">The Practical Takeaway</div>
-  Use public benchmarks to shortlist models and verify that safety thresholds are met. Then build your own task-specific eval to make the final selection. The benchmark gets you to a shortlist of candidates; your custom eval tells you which one to actually deploy — and whether it is actually working once it is live.
-</div>
+      <div class="insight-box">
+        <div class="label">The Practical Takeaway</div>
+        <p style="margin:0;">Use public benchmarks to shortlist models and verify that safety thresholds are met. Then build your own task-specific eval to make the final selection. The benchmark gets you to a shortlist of candidates; your custom eval tells you which one to actually deploy — and whether it is actually working once it is live.</p>
+      </div>
 
-<p>For text-based applications with a clear success criterion, building a custom eval is tractable. For image, video, and agent outputs, it is harder but still necessary — and in many cases, human evaluation remains the only rigorous option. A thousand automated metrics will not tell you whether your users find the generated content useful. Only your users can.</p>
+      <p>For text-based applications with a clear success criterion, building a custom eval is tractable. For image, video, and agent outputs, it is harder but still necessary — and in many cases, human evaluation remains the only rigorous option. A thousand automated metrics will not tell you whether your users find the generated content useful. Only your users can.</p>
 
-<p>In <a href="/blog/llm-judge.html">the next post</a>, I walk through exactly how I built a custom evaluation framework for my digest agent: a judge model that scores every digest against my own calibrated rubric, what it cost, what it revealed, and why even at small scale, getting evals right takes more work than you might expect.</p>
+      <p>In <a href="/blog/llm-judge.html">the next post</a>, I walk through exactly how I built a custom evaluation framework for my digest agent: a judge model that scores every digest against my own calibrated rubric, what it cost, what it revealed, and why even at small scale, getting evals right takes more work than you might expect.</p>
 
-<div class="next-post">
-  <div class="label">Next in this Series</div>
-  <div class="title"><a href="/blog/llm-judge.html">Building an LLM Judge to Evaluate My AI Digest Agent</a></div>
-  <p style="font-size:15px;color:#64748b;margin:6px 0 0;font-family:-apple-system,sans-serif;">Evaluation Series Part 2: an eight-dimension custom rubric, a calibrated LLM judge, what the scores revealed, and why eval costs more than you expect.</p>
-</div>
+      <div class="next-post">
+        <div class="label">Next in this Series</div>
+        <div class="title"><a href="/blog/llm-judge.html">Building an LLM Judge to Evaluate My AI Digest Agent</a></div>
+        <p style="font-size:15px;color:var(--text-light);margin:8px 0 0;">Evaluation Series Part 2: an eight-dimension custom rubric, a calibrated LLM judge, what the scores revealed, and why eval costs more than you expect.</p>
+      </div>
 
-<p>
-  <span class="tag">Model Evaluation</span>
-  <span class="tag">LLM Benchmarks</span>
-  <span class="tag">MMLU</span>
-  <span class="tag">SWE-Bench</span>
-  <span class="tag">AI Agents</span>
-  <span class="tag">GAIA</span>
-  <span class="tag">Benchmark Contamination</span>
-  <span class="tag">Applied AI</span>
-</p>
+      <div class="post-footer">
+        <p><strong>About the author:</strong> I'm Linus, a Singaporean Product Manager currently based in San Francisco. I write about building practical AI systems from the perspective of someone who's learning by doing. This is part of my ongoing series, <em>Applied AI Thinking for Operators</em>.</p>
+        <p>
+          Email: <a href="mailto:seah.linus@gmail.com">seah.linus@gmail.com</a><br>
+          GitHub: <a href="https://github.com/linusseah" target="_blank">linusseah</a>
+        </p>
+        <div style="margin-top: 16px; display: flex; gap: 20px; align-items: center;">
+          <a href="mailto:seah.linus@gmail.com" title="Email" style="color: var(--text-light); text-decoration: none;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="4" width="20" height="16" rx="2"/>
+              <path d="M2 7l10 7 10-7"/>
+            </svg>
+          </a>
+          <a href="https://www.linkedin.com/in/linusseah/" target="_blank" title="LinkedIn" style="color: var(--text-light); text-decoration: none;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="2" width="20" height="20" rx="3"/>
+              <path d="M7 10v7M7 7v.01M12 17v-4a2 2 0 0 1 4 0v4M12 10v7"/>
+            </svg>
+          </a>
+          <a href="https://github.com/linusseah" target="_blank" title="GitHub" style="color: var(--text-light); text-decoration: none;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/>
+            </svg>
+          </a>
+        </div>
+        <p style="font-size:12px; color: var(--text-muted); margin-top:24px;">
+          <em>References:</em><br>
+          · <a href="https://arxiv.org/abs/2009.03300" target="_blank">Hendrycks et al. — MMLU: Massive Multitask Language Understanding</a><br>
+          · <a href="https://www.swebench.com" target="_blank">SWE-bench: Can Language Models Resolve Real GitHub Issues?</a><br>
+          · <a href="https://openai.com/index/gpt-4o-system-card/" target="_blank">OpenAI — GPT-4o System Card</a><br>
+          · <a href="https://www.anthropic.com/news/claude-3-5-sonnet" target="_blank">Anthropic — Claude 3.5 Sonnet Model Card</a><br>
+          · <a href="https://storage.googleapis.com/deepmind-media/gemini/gemini_v1_5_report.pdf" target="_blank">Google — Gemini 1.5 Technical Report</a>
+        </p>
+      </div>
 
-<div class="post-footer">
-  <strong>About the author</strong><br>
-  Linus Seah writes about practical AI implementation for operators — people building real systems with LLMs, not just prompting chatbots. He is an MBA student at Kellogg and the author of the <a href="https://github.com/sumoseah/daily-digest-v2" target="_blank">daily-digest-v2</a> project.<br><br>
-  <a href="https://www.linkedin.com/in/linusseah/" target="_blank">LinkedIn</a> ·
-  <a href="https://github.com/sumoseah/daily-digest-v2" target="_blank">GitHub</a> ·
-  <a href="#">Applied AI Thinking for Operators</a>
-</div>
+    </article>
 
-<div class="footnote">
-  Benchmark scores cited are from publicly available model cards as of Q1 2025. Individual evaluation methodology details — shot counts, prompting strategies, test set versions — vary by lab and may affect direct comparisons across cards.
-</div>
+  </main>
 
+  <footer>
+    <div class="container">
+      Linus Seah · 2026
+    </div>
+  </footer>
+
+<!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "0772180b5fc641d8870481048657edf2"}'></script><!-- End Cloudflare Web Analytics -->
 </body>
 </html>
