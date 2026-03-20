@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>When Your User Isn't You — Linus Seah</title>
+  <meta name="description" content="Scaling from a single personal agent to a multi-agent production pipeline, and what that progression forced me to rethink.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+  <nav>
+    <div class="container">
+      <a href="/" class="nav-name"><img src="/images/pp.jpg" alt="Linus Seah" class="nav-photo">Linus Seah</a>
+      <ul class="nav-links">
+        <li><a href="/about/">About</a></li>
+        <li><a href="/projects/">Projects</a></li>
+        <li><a href="/blog/" class="active">Articles</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main class="container">
+
+    <div class="post-header">
+      <div class="series">Applied AI Thinking for Operators · Part 3 of 4</div>
+      <h1>When Your User Isn't You</h1>
+      <p class="post-subtitle">Scaling from a single personal agent to a multi-agent production pipeline, and what that progression forced me to rethink.</p>
+      <div class="post-meta">
+        By <a href="https://www.linkedin.com/in/linusseah/" target="_blank">Linus Seah</a> · March 2026 · 11 min read<br>
+        Live demo: <a href="https://instalily-lead-gen.vercel.app/" target="_blank">instalily-lead-gen.vercel.app</a> · Code: <a href="https://github.com/linusseah/instalily-lead-gen" target="_blank">github.com/linusseah/instalily-lead-gen</a><br>
+        <em>Part 4 of this series covers the <a href="/blog/lead-gen-technical/">technical implementation and infrastructure decisions</a>.</em>
+      </div>
+    </div>
+
+    <article class="prose">
+
+      <p>My first project in this series was a personal AI news digest: a single agent that monitored sources, filtered by relevance, and delivered a daily summary to my inbox. It ran on a cron job and the only user was me. This project is the next step up: a three-agent pipeline that generates scored, outreach-ready leads for a CRM, deployed in production on Vercel with a Next.js dashboard. The scope is bigger on every dimension: more agents, more complex orchestration, a real database, a production deployment, and an end user who isn't me.</p>
+
+      <p>The thread connecting both projects is the same question: what does it actually take to deploy an agent that does useful work? In the digest project, that question was mostly about output quality and reliability for a single user. Here it became about how to orchestrate multiple agents, structure their search and handoffs, and build something that holds up outside of a demo environment. This post covers how I thought through those problems, in the order they surfaced.</p>
+
+      <h2>The Use Case</h2>
+
+      <p>For this project I needed a realistic test case. I picked a hypothetical company in specialty manufacturing: a materials company that produces protective films used in industries like architectural graphics, vehicle wraps, and large-format signage. The product category doesn't have an obvious buyer profile, which made it a useful stress test for an automated lead generation system.</p>
+
+      <p>The goal was to build a CRM tool that automatically generates a list of high-quality leads. More specifically, for each lead the pipeline should produce three things:</p>
+
+      <ul>
+        <li><strong>A matching company</strong> that fits the Ideal Customer Profile (ICP). An ICP is a definition of the type of company most likely to need your product, based on criteria like industry, company size, and how they use relevant product categories. In this case: companies in large-format graphics, vehicle wraps, fleet graphics, or architectural graphics, operating at meaningful scale.</li>
+        <li><strong>Decision-makers at the right level</strong> within that company: named contacts with the seniority and role most likely to be involved in a purchasing decision, such as VP of Procurement, Head of Partnerships, or R&D Director.</li>
+        <li><strong>Industry engagement context</strong>: which relevant trade shows the company attends or has attended, so outreach can reference something specific rather than leading with a generic pitch.</li>
+      </ul>
+
+      <p>The output of a successful pipeline run is a dashboard populated with enriched, scored leads that a sales rep can open on a Monday morning and act on without having to do their own research first.</p>
+
+      <div class="figure">
+        <img src="screenshot-dashboard.png" alt="Instalily Lead Dashboard showing the full lead table with qualification scores, status filters, and the sliding detail panel open on the right" />
+        <div class="caption">The lead dashboard in production. The table shows all discovered leads with their fit score, status, and assigned owner. Clicking any lead opens the detail panel on the right with the full qualification breakdown, decision-maker contact, industry engagement context, and outreach draft.</div>
+      </div>
+
+      <h2>First Framing: An Orchestration Problem</h2>
+
+      <p>The obvious way to structure this is as an orchestration problem: identify the distinct jobs to be done, assign each to a specialized agent, wire the outputs together in sequence. I broke it into three agents. Agent 1 discovers companies. Agent 2 enriches each company with contacts and context. Agent 3 drafts personalized outreach per decision-maker. The pipeline runs sequentially: the output of each agent feeds directly into the next.</p>
+
+      <p>That architecture is correct, and it's still the structure I'm using. But when I ran the first iteration, the results were poor. Not broken, just not useful. The company list was too short, the companies that did appear weren't consistently good fits, enrichment was patchy, and the outreach drafts were generic. Getting the orchestration structure right took about a day. Getting the search logic inside each agent right took considerably longer, and connects directly to a broader reflection I'll come back to <a href="#taught-me">at the end of this post</a>.</p>
+
+      <p>The agents were searching in ways that produced mediocre results, and no amount of refinement at the orchestration level would fix that. Each agent needed to be designed to search efficiently, in a sequence that built on what the previous agent had found.</p>
+
+      <div class="callout">
+        <strong>The shift:</strong> From "how do we connect three agents" to "how do we design the search strategy inside each agent so that the combined output is actually useful." Those are different problems, and the second one is harder.
+      </div>
+
+      <h2>The Search Space Problem</h2>
+
+      <p>The first version of Agent 1 anchored discovery on industry events. The hypothesis was that I could get the highest-signal leads by finding companies attending relevant industry events — guaranteed to be operating in the right space, and reachable at those events. However, this narrowed the search space far too much. I ended up with very few results: eight to ten companies per run across the entire ICP, which isn't enough to be useful and doesn't justify the compute cost.</p>
+
+      <p>The fix was to change the discovery mechanism entirely. Using Exa's <code>findSimilar</code> API, seeded from a set of reference company URLs I knew were strong ICP fits, Agent 1 now asks a different question: not "who attends these shows" but "who looks like these companies." This consistently returns 20 to 30 candidate companies per run.</p>
+
+      <p>Event and trade show data didn't disappear from the pipeline. It moved to Agent 2's enrichment phase (Phase C — more on the full Agent 2 structure in the <a href="/blog/lead-gen-technical/">technical companion post</a>), where it became a context signal rather than the primary discovery mechanism. A company that appears in the similarity search and has confirmed event attendance gets a higher engagement confidence score. A company with no event data still makes the list, carrying an "inferred" engagement confidence rather than "confirmed." The distinction is visible in the dashboard output and reflects what I actually know, rather than leaving a blank where useful information should be.</p>
+
+      <h2>Designing the Qualification Rubric</h2>
+
+      <p>Once Agent 1 returns a pool of candidate companies, Agent 2 enriches each one and produces a qualification score. The rubric is a weighted composite across four criteria:</p>
+
+      <ul>
+        <li><strong>Industry Fit (30%):</strong> Is the company's core business in large-format graphics, vehicle wraps, fleet graphics, or architectural graphics?</li>
+        <li><strong>Strategic Relevance (30%):</strong> Do they use, specify, or procure protective overlaminates or durable graphic films? This is the direct product fit question.</li>
+        <li><strong>Company Size and Revenue (20%):</strong> Revenue above $50M or 200-plus employees? Smaller companies score proportionally lower on this dimension.</li>
+        <li><strong>Industry Engagement (20%):</strong> Active presence at relevant trade shows and associations?</li>
+      </ul>
+
+      <p>Each criterion is scored 0 to 10. The weighted total produces a score out of 100, mapped to a label: High (70 and above), Medium (40 to 69), or Low (below 40). The rubric serves two purposes: ranking (score determines where a company appears in the dashboard) and explainability (every lead shows a breakdown by criterion so the reasoning behind the score is visible rather than collapsed into a single number).</p>
+
+      <div class="figure">
+        <img src="screenshot-dashboard.png" alt="Lead detail panel showing the qualification score breakdown with individual criterion scores and rationale" />
+        <div class="caption">The qualification score breakdown in the detail panel. Each of the four criteria is scored individually with a progress bar, and the rationale explains exactly why the lead scored as it did — so the reasoning is visible rather than collapsed into a single number.</div>
+      </div>
+
+      <p>One important caveat: the weights I chose (30/20/30/20) are somewhat arbitrary. They encode a first-pass judgment about what matters most for this particular ICP, but they haven't been validated against actual outcomes. In a production setting, this rubric would need to go through multiple rounds of human calibration — ideally informed by which leads actually convert — before the weights carry any real predictive weight. This is the same problem I explored in <a href="https://linusseah.com/blog/llm-judge.html">Part 2 of this series</a>, where I used an LLM as a judge to evaluate output quality: the evaluation framework is only as good as the criteria you encode into it, and those criteria need to be tested against ground truth.</p>
+
+      <p>Early versions of the pipeline used qualification as a hard filter: score each company and pass only those above a threshold to the outreach agent. This produced too few leads because the confidence intervals on inferred signals are wide enough that a strict filter cuts out real candidates alongside noise. The change was to treat qualification as a ranking mechanism, not a gate. All enriched leads reach the dashboard; the score determines visibility and order.</p>
+
+      <div class="insight-box">
+        <div class="label">Design Principle</div>
+        A v1 qualification system is more useful as an explainability layer than as a filter. Filtering requires confidence in the signal quality. Explainability works even when the signals are uncertain, because it lets the human assess the uncertainty rather than hiding it behind a threshold.
+      </div>
+
+      <p>The rubric weights and other v1 assumptions (the "inferred" engagement tier is a projection, not a verified data point; the outreach tone hasn't been tested across different recipient roles; deduplication by company name and URL will break on subsidiaries) are all intentional starting points, not oversights. They're parameters that need real-world usage to calibrate. The architecture makes them easy to adjust without rebuilding core pipeline logic — but the calibration itself requires the system to be in production first.</p>
+
+      <h2>The 3-Tier Engagement Model</h2>
+
+      <p>One concrete consequence of the explainability principle is how I handle the industry engagement field. An earlier version of the data model was binary: a company either had confirmed conference attendance or the field was null. Null fields provide no actionable information and make the output feel incomplete for a large portion of the lead list.</p>
+
+      <p>The 3-tier model ensures the field is always populated with a meaningful value:</p>
+
+      <div class="figure">
+        <svg viewBox="0 0 660 160" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:#faf9f6;border-radius:8px;border:1px solid var(--border);">
+          <rect x="16" y="16" width="196" height="128" rx="8" fill="#f4f0e8" stroke="var(--border)" stroke-width="1.5"/>
+          <text x="114" y="44" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" font-weight="700" fill="var(--accent)" letter-spacing="0.08em">CONFIRMED</text>
+          <text x="114" y="66" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="12" fill="var(--text)">2026 evidence of active</text>
+          <text x="114" y="84" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="12" fill="var(--text)">industry participation</text>
+          <text x="114" y="112" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="11" fill="var(--text-muted)" font-style="italic">Exhibitor lists, speaker</text>
+          <text x="114" y="130" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="11" fill="var(--text-muted)" font-style="italic">slots, sponsor mentions</text>
+
+          <rect x="232" y="16" width="196" height="128" rx="8" fill="#f4f0e8" stroke="var(--border)" stroke-width="1.5"/>
+          <text x="330" y="44" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" font-weight="700" fill="var(--accent)" letter-spacing="0.08em">HISTORICAL</text>
+          <text x="330" y="66" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="12" fill="var(--text)">Past participation found</text>
+          <text x="330" y="84" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="12" fill="var(--text)">(2024-2025), not 2026</text>
+          <text x="330" y="112" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="11" fill="var(--text-muted)" font-style="italic">Company attended the</text>
+          <text x="330" y="130" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="11" fill="var(--text-muted)" font-style="italic">relevant shows before</text>
+
+          <rect x="448" y="16" width="196" height="128" rx="8" fill="#f4f0e8" stroke="var(--border)" stroke-width="1.5"/>
+          <text x="546" y="44" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" font-weight="700" fill="var(--accent)" letter-spacing="0.08em">INFERRED</text>
+          <text x="546" y="66" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="12" fill="var(--text)">Profile consistent with</text>
+          <text x="546" y="84" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="12" fill="var(--text)">ICP; no direct evidence</text>
+          <text x="546" y="112" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="11" fill="var(--text-muted)" font-style="italic">Strong ICP match;</text>
+          <text x="546" y="130" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="11" fill="var(--text-muted)" font-style="italic">no event data found</text>
+        </svg>
+        <div class="caption">The 3-tier engagement model. Every lead carries one of these three states — the field is never null. The tier is displayed as a colour-coded badge with a short explanation of how it was determined.</div>
+      </div>
+
+      <div class="figure">
+        <img src="screenshot-engagement.png" alt="Industry engagement section in the lead detail panel showing the Historical confidence badge and trade show attendance context" />
+        <div class="caption">The industry engagement field in the detail panel. The "Historical" badge indicates past event attendance was found but no 2026 confirmation yet. The text explains what was found and why this company is likely to return — giving the rep enough context to reference it in outreach.</div>
+      </div>
+
+      <p>"Confirmed" means I found a 2026 press release, exhibitor listing, or speaker slot. "Historical" means past attendance (2024 or 2025) but no current-year evidence. "Inferred" means the company's profile is consistent with the ICP and industry, but no attendance records were found. All three are explicitly labelled — the pipeline is transparent about what it knows and how it knows it.</p>
+
+      <h2>Thoughts on Next Builds</h2>
+
+      <h3>1. Dynamic RAG model</h3>
+      <p>The most significant architectural upgrade is adding semantic search over the lead database. Supabase supports pgvector natively, which means I can store vector embeddings of each company's enriched profile alongside the structured data. Instead of filtering by column values, a user could run a query like "find companies similar to this one I just closed" and get semantically matched results. Paired with a "save search intent" feature — where a saved query runs nightly and surfaces net-new matches automatically — this shifts the product from a batch pipeline to a continuously updating intelligence layer.</p>
+
+      <h3>2. Auth</h3>
+      <p>Currently the dashboard has no authentication: anyone with the URL can view and edit leads. Adding basic login via Supabase Auth would gate access and create the foundation for per-user data isolation. This is a relatively small lift given Supabase's built-in auth support, and it's a prerequisite for everything that follows.</p>
+
+      <h3>3. Multi-user IAM</h3>
+      <p>Once auth is in place, the natural next step is proper Identity and Access Management: multiple reps each seeing only their assigned leads, with an admin layer for assigning ownership and viewing aggregate pipeline health. Supabase's Row Level Security (RLS) handles this at the database level — a policy that filters rows by the authenticated user's ID means each rep's dashboard query automatically returns only their leads, with no application-layer filtering needed.</p>
+
+      <h3>4. Parallelising agents</h3>
+      <p>Agent 2's four enrichment phases currently run sequentially per company, one company at a time. There is no technical reason they can't run concurrently: Python's <code>asyncio</code> would allow all 20-plus companies to be processed in parallel, reducing enrichment time from roughly 8 minutes to closer to 3. Supabase handles concurrent writes without issue. This is the highest-leverage engineering improvement for the next version.</p>
+
+      <h3>5. Automating the search job</h3>
+      <p>The pipeline currently runs on demand. For production, I want it running on a nightly schedule so the dashboard shows fresh results each morning without a manual trigger. A GitHub Actions cron job is the right infrastructure for this — stateless, free at this scale, and easy to configure. I used the same pattern in the daily digest project covered in Parts 1 and 2 of this series.</p>
+
+      <h3>6. Caching search results</h3>
+      <p>Every pipeline run currently starts from scratch: Exa re-discovers the same ICP pool and Claude re-enriches companies already in the database. The deduplication happens at the Supabase write step, which means I'm spending most of each run's compute budget on leads I've already processed. The better approach is to cache the discovered company pool and only pass net-new companies through enrichment. The deduplication check moves to before enrichment rather than after, making each run significantly faster and cheaper as the database grows.</p>
+
+      <h2 id="taught-me">What This Project Taught Me</h2>
+
+      <p>In <a href="/blog/what-agent-means/">Part 1 of this series</a>, one of the core takeaways was that agency is not binary. It exists on a spectrum: a poorly prompted agent given the right tools will produce mediocre output, while the same agent given a clear goal, explicit constraints, and well-structured tool access can perform dramatically better. The difference isn't the model. It's the design of the agent's context.</p>
+
+      <p>I saw the same pattern here, but one level up. The problem isn't just about designing a single agent well — it's about designing a group of agents so that each one's output meaningfully feeds and strengthens the next. When I first built the three-agent pipeline, I gave each agent tools and a rough job description. The results were okay. When I redesigned Agent 1's search strategy, gave Agent 2 a structured four-phase enrichment sequence, and made each phase's output a direct input for the next, the pipeline's overall quality improved substantially — with the same models and the same tools.</p>
+
+      <p>The lesson generalises: it's not about creating a swarm of agents and chaining them together. It's about giving each agent a clear goal and a well-defined search strategy, and sequencing their interactions so that earlier outputs constrain and inform what later agents do. That's where human expertise matters most — not in writing the prompts, but in understanding the domain well enough to design the right sequence of questions for the agents to answer.</p>
+
+      <div class="callout">
+        <strong>Not all agents or agentic frameworks are made equal.</strong> The gap between a working pipeline and a useful one is almost never the model or the tools. It's the specificity of the goals you set, the structure of the search space you give each agent to work in, and the care you take in designing how their outputs reinforce each other.
+      </div>
+
+      <p>The companion post covers the infrastructure side: why I rebuilt from Streamlit to Next.js, the deployment options I evaluated, the Vercel and Supabase architecture, and the efficiency problems that are still open.</p>
+
+      <div class="next-post">
+        <div class="label">Next in this Series</div>
+        <div class="title"><a href="/blog/lead-gen-technical/">From Demo to Production</a></div>
+        <p style="font-size:15px;color:var(--text-light);margin:6px 0 0;font-family:-apple-system,sans-serif;">Three iterations, two complete rebuilds, and the deployment decisions that separate a working prototype from something a sales team can rely on.</p>
+      </div>
+
+      <p>
+        <span class="tag">AI Agents</span>
+        <span class="tag">Lead Generation</span>
+        <span class="tag">Solutions Architecture</span>
+        <span class="tag">Agent Orchestration</span>
+        <span class="tag">Exa API</span>
+        <span class="tag">Sales Tools</span>
+      </p>
+
+    </article>
+
+    <div class="post-footer">
+      <strong>About the author</strong><br>
+      I'm Linus, a Singaporean Product Manager currently based in San Francisco. I write about building practical AI systems from the perspective of someone who's learning by doing. This is part of my ongoing series, <em>Applied AI Thinking for Operators</em>.<br><br>
+      Email: <a href="mailto:seah.linus@gmail.com">seah.linus@gmail.com</a> · <a href="https://github.com/linusseah" target="_blank">GitHub: linusseah</a><br><br>
+      <em>References:</em><br>
+      · <a href="https://linusseah.com/blog/eval-overview.html" target="_blank">Part 1 — What "Agent" Actually Means: Evaluating AI Behaviour</a><br>
+      · <a href="https://linusseah.com/blog/llm-judge.html" target="_blank">Part 2 — Using an LLM as a Judge</a><br>
+      · <a href="/blog/lead-gen-technical/">Part 4 — From Demo to Production (technical companion to this post)</a><br>
+      · <a href="https://exa.ai/docs" target="_blank">Exa API — findSimilar and neural search</a><br>
+      · <a href="https://instalily-lead-gen.vercel.app/" target="_blank">Live dashboard — instalily-lead-gen.vercel.app</a><br>
+      · <a href="https://github.com/linusseah/instalily-lead-gen" target="_blank">instalily-lead-gen — public GitHub repository</a>
+    </div>
+
+  </main>
+
+  <footer>
+    <div class="container">
+      <p><a href="https://github.com/linusseah" target="_blank">GitHub</a> · <a href="https://www.linkedin.com/in/linusseah/" target="_blank">LinkedIn</a> · <a href="mailto:seah.linus@gmail.com">Email</a></p>
+    </div>
+  </footer>
+
+</body>
+</html>

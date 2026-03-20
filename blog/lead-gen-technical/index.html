@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>From Demo to Production — Linus Seah</title>
+  <meta name="description" content="Three iterations, two complete rebuilds, and what I learned about picking the right stack for the right stage of a project.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+  <nav>
+    <div class="container">
+      <a href="/" class="nav-name"><img src="/images/pp.jpg" alt="Linus Seah" class="nav-photo">Linus Seah</a>
+      <ul class="nav-links">
+        <li><a href="/about/">About</a></li>
+        <li><a href="/projects/">Projects</a></li>
+        <li><a href="/blog/" class="active">Articles</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main class="container">
+
+    <div class="post-header">
+      <div class="series">Applied AI Thinking for Operators · Part 4 of 4</div>
+      <h1>From Demo to Production</h1>
+      <p class="post-subtitle">Three iterations, two complete rebuilds, and what I learned about picking the right stack for the right stage of a project.</p>
+      <div class="post-meta">
+        By <a href="https://www.linkedin.com/in/linusseah/" target="_blank">Linus Seah</a> · March 2026 · 13 min read<br>
+        Live demo: <a href="https://instalily-lead-gen.vercel.app/" target="_blank">instalily-lead-gen.vercel.app</a> · Code: <a href="https://github.com/linusseah/instalily-lead-gen" target="_blank">github.com/linusseah/instalily-lead-gen</a><br>
+        <em>Part 3 of this series covers the <a href="/blog/lead-gen-reflections/">agent orchestration and search design thinking behind this project</a>.</em>
+      </div>
+    </div>
+
+    <article class="prose">
+
+      <p>The previous post covered how I thought about the agent architecture: the orchestration structure, the search strategy that replaced event-anchored discovery, and the qualification rubric. This post is the infrastructure companion: how the system is deployed, what I rebuilt and why, and the trade-offs I navigated across the deployment options I tested.</p>
+
+      <p>In this post I detail my thought process working through different permutations of deployment methods, and share my reflections on what AI tools work best for which kind of production requirements. There are a lot of tools in this space now — Vercel, Replit, Lovable, Claude Code, Streamlit, to name a few — and they don't all serve the same function. I wanted to try as many of these as practical and figure out which stack works best for which situation.</p>
+
+      <h2>The Full Stack</h2>
+
+      <p>Before getting into what I tried and discarded, here is what the final architecture looks like end to end:</p>
+
+      <ul>
+        <li><strong>Frontend:</strong> Next.js 14 (React, App Router, TypeScript), built with Claude Code as the AI-assisted coding tool. Runs a HubSpot-style dashboard: filterable lead table, sliding detail panel, inline CRM editing.</li>
+        <li><strong>Hosting and deployment:</strong> Vercel. Auto-deploys from GitHub on push. Serves both the Next.js frontend and the API routes (serverless functions) that connect the frontend to Supabase.</li>
+        <li><strong>Database:</strong> Supabase (Postgres). Stores all lead data with UUID primary keys and JSONB columns for complex fields like multiple decision-maker contacts per company. The Python pipeline writes to it; the Next.js dashboard reads from it via API routes.</li>
+        <li><strong>Pipeline:</strong> Python, run locally or on a cron schedule. Three agents calling Exa and the Anthropic API in sequence. Writes enriched, scored leads to Supabase at the end of each run.</li>
+        <li><strong>External APIs:</strong> Exa (<code>findSimilar</code> for company discovery in Agent 1), Anthropic Claude with <code>web_search</code> (enrichment and outreach in Agents 2 and 3).</li>
+      </ul>
+
+      <p>The pipeline and the dashboard share a database and nothing else. There is no shared runtime state between them. The diagram below shows the full architecture from browser to database to pipeline.</p>
+
+      <div class="figure">
+        <svg viewBox="0 0 680 450" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:var(--bg-alt);border-radius:8px;border:1px solid var(--border);">
+
+          <!-- USER/BROWSER -->
+          <rect x="240" y="14" width="200" height="52" rx="8" fill="var(--bg-alt)" stroke="var(--border)" stroke-width="1.5"/>
+          <text x="340" y="36" text-anchor="middle" font-family="sans-serif" font-size="10" fill="var(--text-light)" letter-spacing="0.08em">USER</text>
+          <text x="340" y="54" text-anchor="middle" font-family="sans-serif" font-size="13" font-weight="700" fill="var(--text)">Browser / Sales Rep</text>
+
+          <!-- Arrow: Browser to Vercel -->
+          <line x1="340" y1="66" x2="340" y2="94" stroke="var(--text-muted)" stroke-width="1.5" stroke-dasharray="4,3"/>
+          <polygon points="334,91 346,91 340,99" fill="var(--text-muted)"/>
+          <text x="352" y="84" font-family="sans-serif" font-size="10" fill="var(--text-muted)" font-style="italic">HTTPS</text>
+
+          <!-- VERCEL CONTAINER (dashed) -->
+          <rect x="14" y="102" width="652" height="106" rx="8" fill="var(--bg)" stroke="var(--text)" stroke-width="1.5" stroke-dasharray="6,3"/>
+          <text x="652" y="118" text-anchor="end" font-family="sans-serif" font-size="10" font-weight="700" fill="var(--text)" letter-spacing="0.1em">VERCEL</text>
+
+          <!-- Next.js Frontend box -->
+          <rect x="30" y="116" width="268" height="78" rx="6" fill="var(--accent)"/>
+          <text x="164" y="140" text-anchor="middle" font-family="sans-serif" font-size="10" fill="var(--bg)" letter-spacing="0.08em">FRONTEND</text>
+          <text x="164" y="160" text-anchor="middle" font-family="sans-serif" font-size="13" font-weight="700" fill="white">Next.js Dashboard</text>
+          <text x="164" y="178" text-anchor="middle" font-family="sans-serif" font-size="10" fill="var(--bg)" font-style="italic">React · TypeScript · shadcn/ui</text>
+
+          <!-- Double arrow -->
+          <text x="316" y="161" text-anchor="middle" font-family="sans-serif" font-size="18" fill="var(--text-muted)">↔</text>
+
+          <!-- API Routes box -->
+          <rect x="342" y="116" width="308" height="78" rx="6" fill="var(--text)"/>
+          <text x="496" y="140" text-anchor="middle" font-family="sans-serif" font-size="10" fill="var(--text-light)" letter-spacing="0.08em">BACKEND</text>
+          <text x="496" y="160" text-anchor="middle" font-family="sans-serif" font-size="13" font-weight="700" fill="white">API Routes (Serverless)</text>
+          <text x="496" y="178" text-anchor="middle" font-family="sans-serif" font-size="10" fill="var(--text-light)" font-style="italic">Stateless · auto-deploy from GitHub</text>
+
+          <!-- Arrow: API Routes to Supabase (reads) -->
+          <line x1="496" y1="208" x2="496" y2="242" stroke="var(--text-muted)" stroke-width="1.5"/>
+          <polygon points="490,239 502,239 496,247" fill="var(--text-muted)"/>
+          <text x="506" y="230" font-family="sans-serif" font-size="10" fill="var(--text-muted)" font-style="italic">reads</text>
+
+          <!-- SUPABASE -->
+          <rect x="180" y="250" width="320" height="68" rx="8" fill="#1E2761"/>
+          <text x="340" y="274" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#AACCEE" letter-spacing="0.08em">DATABASE</text>
+          <text x="340" y="294" text-anchor="middle" font-family="sans-serif" font-size="14" font-weight="700" fill="white">Supabase (Postgres)</text>
+          <text x="340" y="310" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#C8DCFA" font-style="italic">UUID · JSONB · pgvector-ready · RLS</text>
+
+          <!-- Arrow: Pipeline to Supabase (writes) -->
+          <line x1="340" y1="350" x2="340" y2="322" stroke="var(--text-muted)" stroke-width="1.5"/>
+          <polygon points="334,324 346,324 340,318" fill="var(--text-muted)"/>
+          <text x="350" y="344" font-family="sans-serif" font-size="10" fill="var(--text-muted)" font-style="italic">writes</text>
+
+          <!-- PYTHON PIPELINE CONTAINER (dashed) -->
+          <rect x="14" y="354" width="652" height="82" rx="8" fill="#f0fdfa" stroke="#028090" stroke-width="1.5" stroke-dasharray="6,3"/>
+          <text x="652" y="370" text-anchor="end" font-family="sans-serif" font-size="10" font-weight="700" fill="#028090" letter-spacing="0.1em">PYTHON PIPELINE</text>
+
+          <!-- Agent 1 -->
+          <rect x="28" y="368" width="162" height="58" rx="6" fill="#028090"/>
+          <text x="109" y="388" text-anchor="middle" font-family="sans-serif" font-size="9" fill="#AACCEE" letter-spacing="0.06em">AGENT 1</text>
+          <text x="109" y="405" text-anchor="middle" font-family="sans-serif" font-size="12" font-weight="700" fill="white">Research</text>
+          <text x="109" y="420" text-anchor="middle" font-family="sans-serif" font-size="9" fill="#C8DCFA" font-style="italic">Exa findSimilar</text>
+
+          <text x="202" y="400" text-anchor="middle" font-family="sans-serif" font-size="14" font-weight="700" fill="#F59E0B">→</text>
+
+          <!-- Agent 2 -->
+          <rect x="216" y="368" width="210" height="58" rx="6" fill="#1E2761"/>
+          <text x="321" y="388" text-anchor="middle" font-family="sans-serif" font-size="9" fill="#AACCEE" letter-spacing="0.06em">AGENT 2</text>
+          <text x="321" y="405" text-anchor="middle" font-family="sans-serif" font-size="12" font-weight="700" fill="white">Enrichment</text>
+          <text x="321" y="420" text-anchor="middle" font-family="sans-serif" font-size="9" fill="#C8DCFA" font-style="italic">Claude · Phases A, B, C, D</text>
+
+          <text x="438" y="400" text-anchor="middle" font-family="sans-serif" font-size="14" font-weight="700" fill="#F59E0B">→</text>
+
+          <!-- Agent 3 -->
+          <rect x="452" y="368" width="200" height="58" rx="6" fill="#028090"/>
+          <text x="552" y="388" text-anchor="middle" font-family="sans-serif" font-size="9" fill="#AACCEE" letter-spacing="0.06em">AGENT 3</text>
+          <text x="552" y="405" text-anchor="middle" font-family="sans-serif" font-size="12" font-weight="700" fill="white">Outreach</text>
+          <text x="552" y="420" text-anchor="middle" font-family="sans-serif" font-size="9" fill="#C8DCFA" font-style="italic">Claude · per decision-maker</text>
+
+        </svg>
+        <div class="caption">Full stack from browser to pipeline. The dashboard (top) and the Python pipeline (bottom) share only the Supabase database. The dashboard reads via Vercel API routes; the pipeline writes directly to Supabase at the end of each run.</div>
+      </div>
+
+      <h2>Iteration 1: Streamlit + JSON</h2>
+
+      <p>The right move for v0 is almost always the fastest path to something I can look at. Streamlit is a Python library that turns a script into an interactive web app with almost no additional code. It's Python-native, requires no frontend knowledge, and the gap from "script that produces output" to "app with a UI" is a matter of hours. I had a working demo within a day.</p>
+
+      <p>Streamlit works on a simple principle: every time the user interacts with the app (clicks a button, moves a slider, selects a dropdown), Streamlit reruns the entire Python script from top to bottom and re-renders the output. This is genuinely useful for certain kinds of work. If you're building a prototype of an ML model and you want to let stakeholders adjust a confidence threshold and immediately see how it affects the output, full-page reruns are a feature, not a bug. The same applies to data exploration dashboards, quick internal tools for running queries, or anything where the user's interaction is essentially "change a parameter, see the new result." A good example would be a tool that lets a non-technical team member upload a CSV and preview the output of a model at different settings, without the overhead of building a full frontend.</p>
+
+      <p>The problem is that this model breaks down entirely for anything that needs to hold state across multiple interactions. A CRM-style interface, the kind I was building, involves actions like: updating a lead's status without losing the rest of the view, copying an outreach email while keeping the panel open, marking a record as "contacted" and having that change persist without triggering a full reload. Each of these requires independent, localised state updates. Streamlit's full-page rerun makes all of them feel janky because the UI can't hold partial state between interactions. The tool I was building was closer to a lightweight CRM than a data visualisation dashboard, and Streamlit is designed for the latter.</p>
+
+      <p>The second problem was JSON as a persistence layer. A JSON file is a natural first choice for storing results from a local Python script: zero setup, human-readable, trivial to write and parse, and perfectly adequate when you're the only user running the script on one machine. For a quick prototype where you run the script, inspect the output file, and move on, it works fine. The limitations surface when you need concurrent access, partial record updates without rewriting the whole file, or queries across multiple runs without loading everything into memory. All of these are solved by an actual database.</p>
+
+      <div class="callout">
+        <strong>The pattern here:</strong> Streamlit and JSON are both good choices at the prototype stage, on a single machine, for a single user. They become the wrong choice the moment you need the app to run somewhere else, hold state across user interactions, or be updated by more than one process at a time.
+      </div>
+
+      <h2>Iteration 2: Choosing a Production Stack</h2>
+
+      <p>Once I decided Streamlit wasn't the right foundation, I had to pick a new stack. There were several combinations I seriously considered. Each represented a different set of trade-offs across frontend, hosting, and persistence:</p>
+
+      <p><strong>Option A: Lovable with JSON as DB.</strong> Lovable generates complete React web applications from natural language prompts, which I could host on Lovable's own platform. It's the fastest path from zero to a working, shareable UI. The problem is persistence: Lovable-hosted apps don't have a reliable filesystem for writing JSON between deployments, and I'd be building entirely within their managed ecosystem. For a quick prototype I never intended to extend, this would be fine. For something I want to own and iterate on, it creates long-term friction from the start.</p>
+
+      <p><strong>Option B: Export Lovable code, host on Replit, JSON as DB.</strong> Replit does have a persistent filesystem, so JSON-as-persistence would technically work here. The Python pipeline could also live on Replit. The limitation is the same ecosystem concern: Replit's managed environment is excellent for getting something running fast, but the runtime, pricing tiers, and infrastructure choices are all Replit's to control. The more the project grows, the harder it becomes to detach. Both Lovable and Replit are good choices for rapid prototyping; neither is ideal as a long-term production foundation for something you want to customise and own.</p>
+
+      <p><strong>Option C: Next.js (built with Claude Code) + Vercel + Supabase.</strong> This is what I went with. Here's the reasoning for each component:</p>
+
+      <ul>
+        <li><strong>Next.js</strong> is a React framework that supports both server and client components. Unlike Streamlit's full-page rerun model, Next.js client components can hold and update state independently, which is what makes the sliding panel, inline status editing, and copy-to-clipboard interactions feel responsive. React is also the dominant frontend framework, which means long-term customisation is well-supported.</li>
+        <li><strong>Claude Code</strong> was the tool I used to scaffold and build the Next.js frontend. It's an AI-assisted coding CLI, not a deployment platform. Unlike Lovable or Replit, Claude Code helps me write code that lives in my own repository and runs wherever I want. I own the output completely.</li>
+        <li><strong>Vercel</strong> is the natural deployment target for Next.js. Auto-deploy from GitHub, zero infrastructure management, generous free tier. One important constraint worth naming: Vercel runs API routes as serverless functions with no persistent filesystem. Each function invocation starts fresh. This means JSON-as-persistence is incompatible with Vercel — a <code>leads.json</code> file written during one invocation won't exist in the next. This is not a bug; it's the serverless architecture. It's also the constraint that made Supabase the obvious database choice.</li>
+        <li><strong>Supabase</strong> is Postgres with a REST API, UUID primary keys, JSONB columns for storing multiple decision-maker contacts per lead, and row-level security already in place for when I add multi-user auth. The additional reason to choose Supabase over a simpler option: it supports pgvector natively, meaning I can build semantic search on top of the same database in v2 without adding separate infrastructure. The Python pipeline writes to Supabase; the Next.js dashboard reads from it. They share nothing except the schema.</li>
+      </ul>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Option</th>
+            <th>Stack</th>
+            <th>Good For</th>
+            <th>Why I Didn't Use It</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>A</strong></td>
+            <td>Lovable + Lovable hosting + JSON</td>
+            <td>Fastest prototype; no-code UI generation; shareable demo in hours</td>
+            <td>Ecosystem lock-in; no reliable persistence across deployments; harder to customise long-term</td>
+          </tr>
+          <tr>
+            <td><strong>B</strong></td>
+            <td>Lovable (exported) + Replit + JSON</td>
+            <td>Persistent filesystem; Python and frontend in one environment; fast to spin up</td>
+            <td>Still inside Replit's managed ecosystem; runtime and pricing controlled by Replit; harder to own and extend</td>
+          </tr>
+          <tr>
+            <td><strong>C (chosen)</strong></td>
+            <td>Next.js (Claude Code) + Vercel + Supabase</td>
+            <td>Full ownership; dynamic React UI; serverless deployment; structured DB with pgvector upside</td>
+            <td>Steeper setup than A or B; Vercel cold start on first request after idle (1-3s)</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>On Vercel's Cold Start Problem</h3>
+
+      <p>Vercel runs Next.js API routes as serverless functions. When a function hasn't been called recently, the first invocation takes longer (typically 1-3 seconds) because a new instance needs to spin up. For a dashboard opened first thing in the morning after being idle overnight, that delay is noticeable.</p>
+
+      <p>The mitigations I'd apply for a production deployment: use Vercel's Edge Runtime for lightweight read endpoints (no cold start), and have the most latency-sensitive queries hit the Supabase JS client directly rather than going through an API route. Neither requires a major architecture change; they just need to be planned for rather than discovered after launch.</p>
+
+      <h2>The Search Problem</h2>
+
+      <p>The search architecture went through its own evolution in parallel with the infrastructure decisions. Before getting into what changed and why, here's a quick reference for how the three agents and Agent 2's four phases are structured, since the discussion below refers to them directly:</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Agent</th>
+            <th>Job</th>
+            <th>Tool</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Agent 1 — Research</strong></td>
+            <td>Discover 15-25 ICP-matching companies per run</td>
+            <td>Exa <code>findSimilar</code></td>
+          </tr>
+          <tr>
+            <td><strong>Agent 2 — Enrichment</strong></td>
+            <td>Four sequential phases of enrichment per company (see below)</td>
+            <td>Claude + <code>web_search</code></td>
+          </tr>
+          <tr>
+            <td><strong>Agent 3 — Outreach</strong></td>
+            <td>Draft personalised subject line and email per decision-maker</td>
+            <td>Claude</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Agent 2 Phase</th>
+            <th>What It Does</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Phase A</strong></td>
+            <td>Company profile: revenue estimate, employee count, core business description</td>
+          </tr>
+          <tr>
+            <td><strong>Phase B</strong></td>
+            <td>Contact discovery: decision-makers, LinkedIn profiles, email addresses</td>
+          </tr>
+          <tr>
+            <td><strong>Phase C</strong></td>
+            <td>Industry engagement: trade show attendance and association presence</td>
+          </tr>
+          <tr>
+            <td><strong>Phase D</strong></td>
+            <td>Qualification scoring: 4-criterion ICP rubric, score 0-100, High/Medium/Low label</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>API Choices: Exa vs. Claude's web_search</h3>
+
+      <p>I use both Exa and Claude's built-in <code>web_search</code> tool, but for different jobs.</p>
+
+      <p>Exa's <code>findSimilar</code> is a semantic similarity search: given a set of seed URLs (companies I know are in the ICP), it returns other companies that are conceptually similar across the web. It's designed for discovery: surfacing companies I don't already know about, fast and consistently, returning structured company-level results.</p>
+
+      <p>Claude's <code>web_search</code> is better for enrichment: answering specific factual questions about a known company. "Does Company X exhibit at ISA Sign Expo?" is a question with a potentially verifiable answer that a targeted web search can find. "Which companies are similar to Company X?" is not a question web search handles well; that's where Exa's semantic model earns its place.</p>
+
+      <p>The pipeline uses Exa for Agent 1 (discovery) and Claude's <code>web_search</code> within Agent 2's Phase C (industry engagement enrichment). They're complementary, not competing.</p>
+
+      <h3>Filter vs. Qualifier</h3>
+
+      <p>The first version of the pipeline used qualification as a filter: enrich each discovered company, score it, and only pass leads above a minimum threshold to Agent 3. This felt clean. It also produced too few results — sometimes as few as 5 to 8 leads per run — because the confidence intervals on inferred data are wide enough that a strict filter cuts too aggressively.</p>
+
+      <p>The change: qualification became a ranking signal, not a gate. Every discovered lead gets enriched and scored; all of them reach the dashboard; the score determines position in the list. The user decides which threshold is meaningful for their context, not the pipeline.</p>
+
+      <div class="warning-box">
+        <div class="label">Trade-off</div>
+        <p style="margin:0;">Enriching all discovered leads rather than pre-filtering means more Claude API calls per run: roughly 3 to 4 times the compute compared to a strict filter. Pipeline runs that used to complete in 3 to 4 minutes now take 8 to 12 minutes. This is the efficiency problem I haven't fully solved, and it's the most consequential open issue in the current architecture.</p>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Architecture</th>
+            <th>Reliability</th>
+            <th>Complexity</th>
+            <th>Typical Use</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Basic RAG</strong></td>
+            <td>Medium</td>
+            <td>Low</td>
+            <td>Chatbots, document Q&amp;A, simple retrieval</td>
+          </tr>
+          <tr>
+            <td><strong>Retrieval + extraction</strong></td>
+            <td>High</td>
+            <td>Medium</td>
+            <td>Research pipelines, structured data extraction</td>
+          </tr>
+          <tr>
+            <td><strong>Agentic search</strong></td>
+            <td>Very high (with fallbacks)</td>
+            <td>High</td>
+            <td>Autonomous agents, multi-step discovery tasks</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p>This pipeline is in the third category. The agent doesn't just execute a search query: it decides what to search, reads the results, decides whether to search again or move on, and synthesises across multiple sources per company. That's why the runs take longer and why parallelisation matters more than it would for a simpler pipeline.</p>
+
+      <h2>What I Haven't Solved Yet</h2>
+
+      <h3>Sequential execution</h3>
+
+      <p>As a reminder, Agent 2's four phases are: Phase A (company profile), Phase B (contact discovery), Phase C (industry engagement), and Phase D (qualification scoring). Currently these run one at a time, sequentially, for each company in the list: all four phases complete for Company 1 before starting Company 1's neighbour. There's no technical reason Phases A and B can't run in parallel across all 20-plus companies simultaneously using Python's <code>asyncio</code>. Parallelising at the company level would reduce enrichment time from roughly 8 minutes to closer to 3. Supabase handles concurrent writes without issue. This is the highest-leverage engineering improvement for the next version and is purely an implementation gap, not an architectural one.</p>
+
+      <h3>Caching and incremental search</h3>
+
+      <p>Every pipeline run currently starts from scratch: Exa re-discovers the same ICP pool, Claude re-enriches the same companies, and deduplication happens at the Supabase write step. I'm spending most of each run's compute budget on leads already in the database.</p>
+
+      <p>The better approach: cache the discovered company pool and only pass net-new companies through enrichment. Move the deduplication check to before enrichment rather than after. This would make each run significantly faster and cheaper as the database grows, since I'd only be enriching companies I haven't seen before.</p>
+
+      <h3>Qualify-first ordering</h3>
+
+      <p>A cheaper first-pass qualification (lightweight scoring based on company name, URL, and a brief description, with no deep enrichment) could filter the discovery pool before spending API calls on full enrichment. A company that's clearly outside the ICP on basic signals doesn't need Phase B contact enrichment. Implementing this as a pre-enrichment filter would reduce cost without compromising list quality.</p>
+
+      <h3>Pipeline scheduling</h3>
+
+      <p>The pipeline currently runs on demand. For production, I want it running on a nightly schedule so the dashboard shows fresh results each morning without a manual trigger. A GitHub Actions cron job is the right infrastructure for this — stateless, free at this scale, and easy to configure. I used the same pattern in the daily digest project covered in Parts 1 and 2 of this series.</p>
+
+      <h2>The Architecture I'm Building Toward</h2>
+
+      <p>The current architecture is a pull model: run the pipeline, get results. The v2 model is a push model: continuously populate Supabase with a growing candidate pool, and let users query it in real time.</p>
+
+      <p>In practice, this means running a nightly wide-net discovery job that adds new ICP-matching companies to a candidates table without enriching them immediately. Enrichment runs on demand when a user opens a lead, or on a schedule for candidates that have been in the pool long enough. The dashboard becomes a query interface over a pre-built index rather than the output of a synchronous pipeline run.</p>
+
+      <p>This is how production sales intelligence tools work. ZoomInfo and Apollo don't run a search when you click "find leads": they query a pre-built database that has been continuously enriched in the background. I'm building a smaller, more targeted version of that model for a specific ICP.</p>
+
+      <p>The enabling technology for the semantic query layer is pgvector, Postgres's vector extension, which Supabase supports natively. This is one of the main reasons I chose Supabase: the upgrade path from structured relational queries to semantic search doesn't require a new infrastructure layer. A "save search intent" feature would let a user define ICP criteria once and receive net-new matching candidates every morning without triggering a manual run.</p>
+
+      <div class="insight-box">
+        <div class="label">V2 Vision</div>
+        <p style="margin:0;">Nightly wide-net discovery feeds a growing Supabase candidate pool. Users query it via structured filters plus semantic search (pgvector). Saved search intent becomes a recurring enrichment job. The shift is from "generate a list on demand" to "surface relevant signals continuously."</p>
+      </div>
+
+      <h2>What This Taught Me</h2>
+
+      <p>The biggest practical lesson from this project is about the relationship between tool choice and stage of work. Streamlit, Lovable, and Replit are all genuinely good tools: they're optimised for a different stage than what I was building toward. Streamlit is right for fast iteration when I'm the only user. Lovable and Replit are right when I need a shareable prototype quickly and don't yet need to own the infrastructure. The moment I decided this needed to be production-grade, ownable, and extensible, the stack choice became more constrained: Next.js on Vercel with Supabase is the right combination for those requirements, even though it takes longer to set up.</p>
+
+      <p>Three decisions that defined this project in retrospect:</p>
+
+      <p><strong>Stateless infrastructure forced persistent storage discipline.</strong> Vercel's serverless model felt like a constraint when I first hit it. In practice it was a guardrail: it made the right architecture (Supabase as the integration layer between pipeline and dashboard) the obvious choice rather than an optional upgrade.</p>
+
+      <p><strong>Switching from filter to qualifier shifted the design philosophy.</strong> What started as a compute problem (too few leads, too many API calls) resolved into a product principle: the pipeline's job in v1 is to surface signals with transparent reasoning, not to make decisions on behalf of the user.</p>
+
+      <p><strong>Naming the unsolved problems is part of the architecture.</strong> Sequential execution, caching, qualify-first ordering: these aren't failures of the current build. They're the roadmap for the next one. Understanding where a system is inefficient and why is as important as understanding where it works.</p>
+
+      <p>The code is on GitHub. If you're building something similar — lead generation, research automation, or any pipeline where the search space is the hard problem — I'm happy to compare notes.</p>
+
+      <div class="next-post">
+        <div class="label">Previous in this Series</div>
+        <div class="title"><a href="/blog/lead-gen-reflections/">When Your User Isn't You</a></div>
+        <p style="font-size:15px;color:var(--text-light);margin:6px 0 0;font-family:-apple-system,sans-serif;">The agent orchestration and search design thinking behind this project: how the problem framing evolved and what the qualification rubric is actually for.</p>
+      </div>
+
+      <p>
+        <span class="tag">AI Agents</span>
+        <span class="tag">Lead Generation</span>
+        <span class="tag">Solutions Architecture</span>
+        <span class="tag">Next.js</span>
+        <span class="tag">Supabase</span>
+        <span class="tag">Vercel</span>
+        <span class="tag">Exa API</span>
+      </p>
+
+    </article>
+
+    <div class="post-footer">
+      <strong>About the author</strong><br>
+      I'm Linus, a Singaporean Product Manager currently based in San Francisco. I write about building practical AI systems from the perspective of someone who's learning by doing. This is part of my ongoing series, <em>Applied AI Thinking for Operators</em>.<br><br>
+      Email: <a href="mailto:seah.linus@gmail.com">seah.linus@gmail.com</a> · <a href="https://github.com/linusseah" target="_blank">GitHub: linusseah</a><br><br>
+      <em>References:</em><br>
+      · <a href="/blog/lead-gen-reflections/">Part 3 — When Your User Isn't You (design thinking companion to this post)</a><br>
+      · <a href="https://exa.ai/docs" target="_blank">Exa API — findSimilar and neural search documentation</a><br>
+      · <a href="https://supabase.com/docs" target="_blank">Supabase documentation — Postgres, RLS, and pgvector</a><br>
+      · <a href="https://vercel.com/docs/functions" target="_blank">Vercel — serverless functions and Edge Runtime</a><br>
+      · <a href="https://nextjs.org/docs" target="_blank">Next.js documentation — App Router and server components</a><br>
+      · <a href="https://docs.anthropic.com" target="_blank">Anthropic Claude API documentation</a><br>
+      · <a href="https://instalily-lead-gen.vercel.app/" target="_blank">Live dashboard — instalily-lead-gen.vercel.app</a><br>
+      · <a href="https://github.com/linusseah/instalily-lead-gen" target="_blank">instalily-lead-gen — public GitHub repository</a>
+    </div>
+
+  </main>
+
+  <footer>
+    <div class="container">
+      <p><a href="https://github.com/linusseah" target="_blank">GitHub</a> · <a href="https://www.linkedin.com/in/linusseah/" target="_blank">LinkedIn</a> · <a href="mailto:seah.linus@gmail.com">Email</a></p>
+    </div>
+  </footer>
+
+</body>
+</html>
