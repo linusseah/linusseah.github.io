@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Open World Models, Physical AI, and the Road to AGI — Linus Seah</title>
+  <meta name="description" content="Reflections from working with the research team at Genmo: what open world models actually are, how they differ from physical AI and VLAs, and what needs to be true to push this frontier forward.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+  <nav>
+    <div class="container">
+      <a href="/" class="nav-name"><img src="/images/pp.jpg" alt="Linus Seah" class="nav-photo">Linus Seah</a>
+      <ul class="nav-links">
+        <li><a href="/about/">About</a></li>
+        <li><a href="/projects/">Projects</a></li>
+        <li><a href="/blog/" class="active">Articles</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main class="container">
+
+    <div class="post-header">
+      <div class="series">Applied AI Thinking for Operators</div>
+      <h1>Open World Models, Physical AI, and the Road to AGI</h1>
+      <p class="post-subtitle">Reflections from the frontier of AI that understands the physical world</p>
+      <div class="post-meta">
+        By <a href="https://www.linkedin.com/in/linusseah/" target="_blank">Linus Seah</a> · March 2026 · 18 min read
+      </div>
+      <p>
+        <span class="tag">World Models</span>
+        <span class="tag">Physical AI</span>
+        <span class="tag">Robotics</span>
+        <span class="tag">AGI</span>
+        <span class="tag">AI Research</span>
+      </p>
+    </div>
+
+    <article class="prose">
+
+      <p>I recently had the privilege of working alongside the research team at <a href="https://www.genmo.ai/" target="_blank">Genmo</a> (fun fact: their CTO, <a href="https://ajayj.com/" target="_blank">Ajay Jain</a>, is a co-author on the <a href="https://arxiv.org/abs/2006.11239" target="_blank">foundational denoising diffusion probabilistic models paper</a> that underpins nearly every modern image and video generative model in production today). What follows is my attempt to consolidate what I learned, correct some of my own earlier misconceptions, and share a point of view on where this frontier is heading. The views expressed here are my own.</p>
+
+      <h2>The Remaining Frontier</h2>
+
+      <p>The AI "Cambrian explosion" is a phrase that has been used so often it risks losing its force, but it remains the most apt metaphor for what has happened since 2022. It started with language: GPT-3, then GPT-4, then a cascade of frontier LLMs from Anthropic, Google, and a growing roster of open-source challengers. Then came image generation (DALL-E, Midjourney, Stable Diffusion), video (Sora, Runway, Kling), speech and music (ElevenLabs, Suno). Each modality followed a roughly similar arc: an initial breakthrough, rapid scaling, and then commoditisation.</p>
+
+      <p>The remaining frontier is the physical modality, and it is the hardest. Not because any single aspect of it is more technically complex than language or vision in isolation, but because it combines <em>all</em> of the other modalities and adds something fundamentally new: interaction with the real, physical world. It requires pairing software with physical embodiment, which makes it simultaneously a hardware challenge, a software challenge, and a systems-integration challenge.</p>
+
+      <p>This is the domain of <strong>open world models</strong> and <strong>physical AI</strong>. These terms are often used interchangeably, but they are meaningfully different, and understanding the distinction is essential to understanding where the field is going.</p>
+
+      <h2>What Is an Open World Model?</h2>
+
+      <p>An open world model (OWM) takes in a current state and an action, and predicts the next state. In the video-generation context, states are frames. The model answers the question: <em>what will the world look like if I do X?</em> The "open" qualifier means it generalises across diverse physical environments rather than being constrained to a single narrow domain.</p>
+
+      <p>Think of an OWM as an AI's internal simulation of how the world works. It learns cause and effect. It learns that dropped objects fall, that rigid objects don't deform on contact, that a cup of water tips when pushed past its centre of gravity. It attempts to achieve spatial and temporal consistency within its simulated environment, much as a human being develops an intuitive physics engine through years of interacting with the real world.</p>
+
+      <p>OWMs are often framed as a precursor to artificial general intelligence (AGI). The reasoning is straightforward: a system that can accurately simulate the physical world, predicting cause and effect and maintaining coherence over time, possesses something that looks like <em>understanding</em>, not just pattern-matching. Nearly every frontier AI lab lists some version of "build a model that understands the world" as its north-star ambition.</p>
+
+      <h3>What can OWMs actually do today?</h3>
+
+      <p>Beyond their role as the "brain" of a future robot, open world models have immediate, practical applications. They can create <strong>digital twins</strong>: synthetic replicas of real-world environments used to run simulations. A manufacturing plant trying to optimise its production line could simulate thousands of plant reconfigurations without shutting down a single assembly station. They can serve as <strong>training environments</strong> for robotic policies, testing how a robot would behave in scenarios that are expensive, dangerous, or simply impossible to recreate in real life (deep-sea navigation, space robotics, bomb disposal). They are finding early traction in <strong>video gaming</strong>, architecture, engineering, and construction. In general, they are most valuable wherever obtaining real-life training data or recreating a real-life scenario is either very hard or impossible.</p>
+
+      <p>The space is attracting serious capital. <a href="https://www.worldlabs.ai/" target="_blank">World Labs</a>, co-founded by Fei-Fei Li, raised $1 billion in February 2026 to advance spatial intelligence. <a href="https://dreamdojo-world.github.io/" target="_blank">NVIDIA's DreamDojo</a>, released in February 2026, is an open-source robot world model trained on 44,711 hours of real-world human video, with simulated success rates showing a Pearson correlation of 0.995 with real-world results. And <a href="https://techcrunch.com/2026/01/23/whos-behind-ami-labs-yann-lecuns-world-model-startup/" target="_blank">AMI Labs</a>, Yann LeCun's new venture, raised $1.03 billion to build world models grounded in his Joint Embedding Predictive Architecture (JEPA), a fundamentally different architectural bet that I'll return to later.</p>
+
+      <h2>What Is Physical AI?</h2>
+
+      <p>Physical AI is some kind of physical embodiment (usually a robot) powered by an AI model. The AI acts as the brain; the robot is the body. The AI model does not have to be an open world model. In fact, most current physical AI systems are powered by <strong>Vision-Language-Action models</strong> (VLAs), not OWMs. This is an important distinction that is frequently missed.</p>
+
+      <div class="figure">
+        <svg viewBox="0 0 680 330" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:var(--bg-alt);border-radius:8px;border:1px solid var(--border);" font-family="'Source Sans 3', sans-serif">
+          <text x="340" y="34" text-anchor="middle" font-size="14" font-weight="700" style="fill:var(--text)">Open World Models vs. Robot Foundation Models (VLAs)</text>
+
+          <!-- OWM Box -->
+          <rect x="30" y="55" width="285" height="130" rx="8" fill="#f0eee9" stroke="#8b7355" stroke-width="1.5"/>
+          <text x="172" y="80" text-anchor="middle" font-size="13" font-weight="700" style="fill:var(--accent)">Open World Model (OWM)</text>
+          <text x="172" y="102" text-anchor="middle" font-size="11" style="fill:var(--text-light)">Input: current state + action</text>
+          <text x="172" y="119" text-anchor="middle" font-size="11" style="fill:var(--text-light)">Output: predicted next state</text>
+          <line x1="55" y1="133" x2="289" y2="133" stroke="#e0ddd5" stroke-width="1"/>
+          <text x="172" y="153" text-anchor="middle" font-size="11" font-weight="600" style="fill:var(--accent)">"What will happen if I do X?"</text>
+
+          <!-- Arrow -->
+          <defs>
+            <marker id="arr" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+              <polygon points="0 0, 8 3, 0 6" style="fill:var(--text-light)"/>
+            </marker>
+          </defs>
+          <line x1="315" y1="118" x2="362" y2="118" stroke="#9a9588" stroke-width="1.5" marker-end="url(#arr)"/>
+          <text x="339" y="110" text-anchor="middle" font-size="9" style="fill:var(--text-muted)">feeds</text>
+
+          <!-- VLA Box -->
+          <rect x="365" y="55" width="285" height="130" rx="8" fill="#f0eee9" stroke="#8b7355" stroke-width="1.5"/>
+          <text x="507" y="80" text-anchor="middle" font-size="13" font-weight="700" style="fill:var(--accent)">Robot Foundation Model (VLA)</text>
+          <text x="507" y="102" text-anchor="middle" font-size="11" style="fill:var(--text-light)">Input: images, joint states, language</text>
+          <text x="507" y="119" text-anchor="middle" font-size="11" style="fill:var(--text-light)">Output: motor torques, joint angles</text>
+          <line x1="390" y1="133" x2="624" y2="133" stroke="#e0ddd5" stroke-width="1"/>
+          <text x="507" y="153" text-anchor="middle" font-size="11" font-weight="600" style="fill:var(--accent)">"What should I do next?"</text>
+
+          <!-- Dependency explanation -->
+          <rect x="80" y="215" width="520" height="88" rx="8" fill="none" stroke="#e0ddd5" stroke-width="1.5" stroke-dasharray="6,3"/>
+          <text x="340" y="240" text-anchor="middle" font-size="12" font-weight="600" style="fill:var(--text)">The Dependency Chain</text>
+          <text x="340" y="262" text-anchor="middle" font-size="11" style="fill:var(--text-light)">OWMs generate physically plausible, action-conditioned training data</text>
+          <text x="340" y="280" text-anchor="middle" font-size="11" style="fill:var(--text-light)">that makes VLAs more generalisable.</text>
+          <text x="340" y="297" text-anchor="middle" font-size="10" style="fill:var(--text-muted)">NVIDIA (DreamDojo → GR00T) and DeepMind (Veo → Gemini Robotics) both run this loop internally.</text>
+        </svg>
+        <div class="caption">The two key building blocks of Physical AI are often conflated but answer fundamentally different questions. World models and VLAs sit in a dependency chain; one generates the training data the other consumes.</div>
+      </div>
+
+      <p>A VLA takes in observations (images, joint states, language instructions) and outputs actions: motor torques, joint angles, gripper commands. The "foundation" part means it is pretrained across diverse robots and tasks so it can generalise. It answers a different question from the OWM: not "what will the world look like?" but "what should I do next?"</p>
+
+      <p>The relationship between the two is a training data dependency: world models generate the action-conditioned, physically plausible video data that makes robot foundation models more generalisable. Companies like <a href="https://physicalintelligence.company/" target="_blank">Physical Intelligence</a> (whose π0 model was trained on 7 robotic platforms and 68 unique tasks), <a href="https://www.sunday.ai/" target="_blank">Sunday</a> (building household humanoid robots), <a href="https://deepmind.google/models/gemini-robotics/" target="_blank">Google DeepMind</a> (Gemini Robotics), and <a href="https://figure.ai/" target="_blank">Figure AI</a> are all pushing the VLA frontier.</p>
+
+      <h2>Why Are They So Often Conflated?</h2>
+
+      <p>Both OWMs and physical AI are associated with AGI. And AGI, in the popular imagination, looks like <em>The Terminator</em> or <em>Ex Machina</em> or Steven Spielberg's <em>A.I.</em> (a physically embodied intelligence). This is the "robot apocalypse" version of AGI, and it naturally fuses the software (world model) and the hardware (robot) into a single concept.</p>
+
+      <p>But AGI does not have to be physical. Think of Rehoboam in <em>Westworld</em> (a vast predictive model that simulates human civilisation without having a body) or "The Entity" in <em>Mission: Impossible: Dead Reckoning</em> (an intelligence that exists entirely in digital infrastructure). These are depictions of AGI that are purely cognitive, with no physical embodiment at all.</p>
+
+      <p>I don't think there is a settled definition of AGI yet. But most working definitions would converge on an AI system that is: (a) capable of <strong>continuous learning</strong>, updating itself from new experience rather than being frozen after training; (b) able to <strong>perceive and model the world</strong>, with an understanding of cause and effect and an awareness of space and time; and (c) able to <strong>generalise</strong> to genuinely novel situations it was never trained on.</p>
+
+      <p>Open world models are seen as the "brain" of an AGI, or at least a precursor to it, because they attempt to satisfy condition (b): predicting cause and effect and maintaining spatial and temporal consistency. They should, in theory, also contribute to (c), because a sufficiently rich world model should be able to simulate novel scenarios that go beyond its training data.</p>
+
+      <div class="insight-box">
+        <div class="label">A distinction worth making</div>
+        <p style="margin:0;"><strong>Continuous learning</strong> and <strong>generalisation</strong> are related but separable problems. Generalisation is the ability to perform well on novel scenarios at inference time; LLMs already demonstrate this impressively. Continuous learning (also called lifelong or online learning) is the ability to update the model's weights from new experience without catastrophically forgetting prior knowledge. Existing OWMs attempt the former; the latter remains largely unsolved. The recent discussion around recurrent LLM architectures points toward models that can <em>improve</em> over time, not just generate output to novel input, and that's a different, harder problem.</p>
+      </div>
+
+      <h2>Why Can't We Just Use the LLM Playbook?</h2>
+
+      <p>An astute observer might ask: current LLMs already generalise to novel inputs. That's precisely why they're so widely used. Hasn't this problem already been solved? Why can't we simply adopt the same underlying architecture for world models?</p>
+
+      <p>The answer lies in the data primitive. LLMs are built on the primitive of language, specifically word embeddings derived from tokenised text. There is an emergent property that arises from using language as a data primitive: text inherently encodes compositional semantic structure (syntax, grammar, hierarchical meaning) in a way that other data primitives (pixels, joint angles, force vectors) do not.</p>
+
+      <p>When an LLM responds coherently to a prompt it has never seen before, it appears to "understand" because the training objective (next-token prediction) and the data primitive (language tokens) were co-designed: each makes sense only because of the other. The transformer architecture leverages this structure to build representations that are hierarchically organised, and this is what enables generalisation.</p>
+
+      <p>This does not map straightforwardly to the physical world. Pixels don't inherently encode cause and effect. A sequence of image frames showing a ball rolling off a table and falling contains the <em>visual evidence</em> of gravity, but the pixel representation alone doesn't distinguish between "the ball fell because it was pushed" and "the ball fell because the table was tilted" unless the model has learned a causal representation, and that's much harder to learn from pixels alone than syntactic structure is to learn from text.</p>
+
+      <div class="callout">
+        <strong>The trillion-dollar question:</strong> What is the data primitive that encodes physical semantics most accurately, in the same way that text tokens encode grammatical semantics? Whoever answers this will have done for robotics what the transformer and next-token prediction did for language.
+      </div>
+
+      <h2>The State of Physical AI: VLAs and Their Limits</h2>
+
+      <p>Most current physical AI systems are powered by VLAs, not by open world models. Understanding how VLAs work and where they break is essential context for understanding why the field believes OWMs are necessary for the next leap.</p>
+
+      <p>VLAs are trained primarily via <strong>imitation learning</strong>. There are two main sources of training data. The first is <strong>human task mimicry</strong>: video recordings of humans carrying out tasks, which the model learns to reproduce. The second is <strong>teleoperation</strong>: human operators physically control robotic embodiments (via exoskeletons, haptic gloves, or remote joysticks), carrying out specific tasks, and the recordings become training data.</p>
+
+      <p>The training data typically involves three primitives: the <strong>video recording</strong> itself (pixels), <strong>language annotations</strong> (annotators labelling each video segment with the task or action being performed), and <strong>action data</strong> (coordinates of end-effectors, joint angles, gripper states). Different VLA architectures train on different combinations: at minimum pixels and actions; at best, all three.</p>
+
+      <div class="callout">
+        <strong>From Gemini Robotics 1.5 (Google DeepMind, 2025):</strong> The model is trained on "thousands of hours of real-world expert robot demonstrations containing thousands of diverse tasks, covering scenarios with varied manipulation skills, objects, task difficulties, episode horizons, and dexterity requirements" across ALOHA, Bi-arm Franka, and Apollo humanoid platforms. Its Motion Transfer mechanism enables zero-shot cross-embodiment skill transfer: tasks trained on one robot transfer directly to a different robot without retraining. Over 90% of evaluation episodes during development were conducted in simulation. <a href="https://arxiv.org/html/2503.20020v1" target="_blank">→ Full paper</a>
+      </div>
+
+      <p>VLAs have made real progress on generalisation. Gemini Robotics 1.5 achieves a progress score of 0.83 on in-distribution tasks and demonstrates meaningful instruction, action, and visual generalisation. Its "Thinking VLA" architecture enables the robot to reason in natural language before acting, dramatically improving multi-step task performance.</p>
+
+      <p>But even with these advances, VLAs face fundamental constraints that stem from the nature of their training data.</p>
+
+      <h3>The brittleness of teleoperated data</h3>
+
+      <p>Teleoperated datasets are controlled by embodiment type, task, objects, and environment. Consider a seemingly simple task: pick up an egg from a blue cup and place it on a green plate, on a flat tabletop in bright lighting. A policy trained on this specific scenario might fail if you change <em>any single variable</em>: switch to warm yellow lighting, replace the green plate with a red bowl, move the cup to a different position on the table. That's how brittle current policies can be.</p>
+
+      <p>This brittleness creates a logistical impossibility: you cannot create teleoperated data for every single scenario, action, object, and environment combination in the world. Even with a million operators working around the clock, the combinatorial space of the real world dwarfs any dataset you could collect. The data also needs to be created separately for each embodiment type (quadrupeds, bipeds/humanoids, dual-arm and single-arm platforms), each with their own kinematic configurations, grippers, and actuators.</p>
+
+      <p>Training on all three data primitives (pixels, language, actions) helps. When the model can semantically link pixel observations to action sequences to language commands, it gains an embodiment-agnostic anchor: the word "grasp" maps to a class of contact-and-lift action sequences across different objects, robots, and visual contexts. This enables better cross-embodiment transfer. But even with all three primitives and high-quality annotations, the model's generalisation remains bounded by the coverage of the training corpus.</p>
+
+      <p>This is why even companies that have worked on robotics for years (Amazon being the canonical example) have only deployed robots in extremely controlled settings: windowless warehouses with uniform lighting, guided floor beams, and rigidly constrained workflows. And it's why I remain sceptical of consumer robotics companies making bold claims about what their robots can do in unstructured home environments.</p>
+
+      <h2>Why OWMs Are the Key to Physical AI's Next Frontier</h2>
+
+      <p>Given these constraints, open world models offer two critical capabilities that the current VLA paradigm lacks.</p>
+
+      <h3>1. Simulated testing environments</h3>
+
+      <p>A robot policy is a set of actions a robot takes given a particular set of observations. A <strong>policy rollout</strong> is when that policy is tested in an environment. These rollouts can be carried out in a physical environment (say, a manufacturing site), but this is often costly, difficult to reproduce, or simply impossible. Consider policy rollouts for robots doing deep-sea navigation, space exploration, or bomb disposal. You cannot test-fail-iterate in these environments the way you can in a warehouse.</p>
+
+      <p>This is where OWMs become essential: they provide a simulated digital environment in which to test robotic policies before deploying them in the real world. The Gemini Robotics 1.5 team reports that "over 90% of the evaluation episodes during development were conducted in simulation," using the open-source <a href="https://mujoco.org/" target="_blank">MuJoCo</a> physics simulator. This dramatically reduces the volume of tests on real hardware, allowing much faster iteration.</p>
+
+      <h3>2. Simulated training environments</h3>
+
+      <p>The bigger prize is using world models not just for testing but for <em>training</em>. If your world model can accurately simulate real-world cause and effect, a robot policy can be trained inside this simulated environment by generating arbitrary situations, far more diverse than any teleoperation dataset could provide.</p>
+
+      <div class="warning-box">
+        <div class="label">Important caveat</div>
+        <p style="margin:0;">This is a big "if." No world model in production today is accurate enough to fully substitute for real-world training. If you train a policy via reinforcement learning inside an imperfectly simulated environment, the policy will exploit the model's errors, learning behaviours that look optimal in simulation but fail catastrophically in reality. In the real world, physical laws govern the reward mechanism properly in a way that an imperfect simulation does not. This failure mode, called <strong>model exploitation</strong>, is the central challenge of model-based reinforcement learning.</p>
+      </div>
+
+      <h2>World Models vs. Physical Simulators vs. Video Generators</h2>
+
+      <p>This brings me to an important three-way distinction that is frequently collapsed in popular discussion.</p>
+
+      <div class="figure">
+        <svg viewBox="0 0 680 370" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:var(--bg-alt);border-radius:8px;border:1px solid var(--border);" font-family="'Source Sans 3', sans-serif">
+          <text x="340" y="34" text-anchor="middle" font-size="14" font-weight="700" style="fill:var(--text)">Three Approaches to Simulating the Physical World</text>
+
+          <!-- Physical Simulators -->
+          <rect x="20" y="55" width="200" height="220" rx="8" fill="none" stroke="#8b7355" stroke-width="1.5"/>
+          <text x="120" y="80" text-anchor="middle" font-size="12" font-weight="700" style="fill:var(--accent)">Physical Simulators</text>
+          <text x="120" y="98" text-anchor="middle" font-size="10" style="fill:var(--text-muted)">(MuJoCo, Isaac Sim,</text>
+          <text x="120" y="112" text-anchor="middle" font-size="10" style="fill:var(--text-muted)">Revit, FEM tools)</text>
+          <line x1="40" y1="124" x2="200" y2="124" stroke="#e0ddd5" stroke-width="1"/>
+          <text x="120" y="145" text-anchor="middle" font-size="10" style="fill:var(--text-light)">Hard-code physical rules</text>
+          <text x="35" y="172" font-size="10" style="fill:#5a7a5a" font-weight="600">+ Reliable, accurate</text>
+          <text x="35" y="190" font-size="10" style="fill:#5a7a5a" font-weight="600">+ Physically correct</text>
+          <text x="35" y="218" font-size="10" style="fill:#9a5a3a" font-weight="600">− Brittle, not generalisable</text>
+          <text x="35" y="236" font-size="10" style="fill:#9a5a3a" font-weight="600">− Covers small subset of world</text>
+          <text x="35" y="254" font-size="10" style="fill:#9a5a3a" font-weight="600">− Expensive to author</text>
+
+          <!-- Video Generators -->
+          <rect x="240" y="55" width="200" height="220" rx="8" fill="none" stroke="#8b7355" stroke-width="1.5"/>
+          <text x="340" y="80" text-anchor="middle" font-size="12" font-weight="700" style="fill:var(--accent)">Video Generators</text>
+          <text x="340" y="98" text-anchor="middle" font-size="10" style="fill:var(--text-muted)">(Sora, Runway, Kling,</text>
+          <text x="340" y="112" text-anchor="middle" font-size="10" style="fill:var(--text-muted)">Seedance, Wan)</text>
+          <line x1="260" y1="124" x2="420" y2="124" stroke="#e0ddd5" stroke-width="1"/>
+          <text x="340" y="145" text-anchor="middle" font-size="10" style="fill:var(--text-light)">Learn visual dynamics from data</text>
+          <text x="255" y="172" font-size="10" style="fill:#5a7a5a" font-weight="600">+ Hyper-realistic visuals</text>
+          <text x="255" y="190" font-size="10" style="fill:#5a7a5a" font-weight="600">+ Diverse, generalisable</text>
+          <text x="255" y="218" font-size="10" style="fill:#9a5a3a" font-weight="600">− Not physically plausible</text>
+          <text x="255" y="236" font-size="10" style="fill:#9a5a3a" font-weight="600">− No action grounding</text>
+          <text x="255" y="254" font-size="10" style="fill:#9a5a3a" font-weight="600">− Can't condition on actions</text>
+
+          <!-- Open World Models -->
+          <rect x="460" y="55" width="200" height="220" rx="8" fill="none" stroke="#8b7355" stroke-width="1.5"/>
+          <text x="560" y="80" text-anchor="middle" font-size="12" font-weight="700" style="fill:var(--accent)">Open World Models</text>
+          <text x="560" y="98" text-anchor="middle" font-size="10" style="fill:var(--text-muted)">(DreamDojo, Cosmos,</text>
+          <text x="560" y="112" text-anchor="middle" font-size="10" style="fill:var(--text-muted)">Genmo, AMI Labs)</text>
+          <line x1="480" y1="124" x2="640" y2="124" stroke="#e0ddd5" stroke-width="1"/>
+          <text x="560" y="145" text-anchor="middle" font-size="10" style="fill:var(--text-light)">Learn physics from data + actions</text>
+          <text x="475" y="172" font-size="10" style="fill:#5a7a5a" font-weight="600">+ Physically plausible</text>
+          <text x="475" y="190" font-size="10" style="fill:#5a7a5a" font-weight="600">+ Action-conditioned</text>
+          <text x="475" y="208" font-size="10" style="fill:#5a7a5a" font-weight="600">+ Generalisable</text>
+          <text x="475" y="236" font-size="10" style="fill:#9a5a3a" font-weight="600">− Physics still imperfect</text>
+          <text x="475" y="254" font-size="10" style="fill:#9a5a3a" font-weight="600">− Active research frontier</text>
+
+          <!-- Bottom note -->
+          <rect x="60" y="300" width="560" height="52" rx="6" fill="none" stroke="#e0ddd5" stroke-width="1"/>
+          <text x="340" y="322" text-anchor="middle" font-size="11" style="fill:var(--text)" font-weight="600">Key insight: Physical plausibility is a local property (frame t+1 follows from frame t).</text>
+          <text x="340" y="342" text-anchor="middle" font-size="11" style="fill:var(--text-light)">Long-horizon temporal consistency (frame t+100 is coherent with all prior state) is a separate, harder problem.</text>
+        </svg>
+        <div class="caption">Three distinct approaches to simulating physical environments, each with different trade-offs. Current video generators excel at visual realism but fail at physical plausibility in ways that matter for robot training.</div>
+      </div>
+
+      <p><strong>Physical simulators</strong> (MuJoCo, NVIDIA Isaac Sim, various structural engineering and FEM tools) have been around for decades. They hard-code physical rules, which makes them reliable and accurate within their domain. Their weakness is the flip side of their strength: they can only simulate scenarios for which rules have been explicitly authored, making them brittle and constrained to a small subset of the physical world.</p>
+
+      <p><strong>Video generation models</strong> (Sora, Runway, Kling, ByteDance's Seedance) can produce hyper-realistic video, but video realism does not equate to physical plausibility. Generated video content can look indistinguishable from reality and yet depict physically impossible events, including objects that float without support, items that pass through solid surfaces, or manipulations that occur without visible contact between the robot and the object.</p>
+
+      <div class="callout">
+        <strong>From RBench (ByteDance Seed &amp; Peking University, 2026):</strong> The benchmark evaluated 25 representative video generation models on physical robot video generation. Even the highest-scoring model (Wan2.6) achieved only a <strong>0.607 average score</strong> across all metrics. Specific failure modes include <em>floating/penetration</em> (robot parts not grounded or interpenetrating solid objects), <em>spontaneous emergence</em> (objects appearing or disappearing without causal motion), and <em>non-contact attachment</em> (objects moving with the robot without visible contact). The benchmark achieves a Spearman correlation coefficient of <strong>0.96</strong> with human evaluations. <a href="https://dagroup-pku.github.io/ReVidgen.github.io/" target="_blank">→ Full paper</a>
+      </div>
+
+      <p>These failure modes matter enormously for robotics. A human viewer tolerates minor physics violations if the video is visually smooth. A robot policy trained on that video will internalise the wrong physical priors and fail in deployment.</p>
+
+      <p>A useful distinction: <strong>physical plausibility is a local property</strong> (frame t+1 follows correctly from frame t), while <strong>long-horizon temporal consistency is a global property</strong> (frame t+100 is coherent with all prior state). These require separate architectural solutions, and current models struggle with both, albeit to different degrees.</p>
+
+      <h2>The Next Frontiers</h2>
+
+      <p>I believe frontier research in this space will be tackling two interconnected bottlenecks.</p>
+
+      <h3>1. Scaling physically plausible data</h3>
+
+      <p>The RBench paper's contribution extends beyond evaluation. Its companion dataset, <strong>RoVid-X</strong>, is the largest open-source robotic video dataset for video generation: 4 million annotated video clips covering 1,300+ skills, enriched with optical flow, depth maps, and physical property annotations. This is the kind of infrastructure investment that preceded the LLM scaling era. First you need the data, then you need the benchmarks to measure whether your models are learning the right things from it.</p>
+
+      <p>Companies are attacking this from multiple angles. NVIDIA with DreamDojo trains world models on massive corpora of real-world human video (44,000+ hours) and uses those models as "data factories," generating action-conditioned synthetic trajectories that downstream robot policies train on. A homegrown company worth watching is <a href="https://www.bifrost.ai/" target="_blank">Bifrost</a>, which generates synthetic training datasets with pixel-perfect semantic labels: each pixel in a scene is annotated with what it represents (a specific object class, surface type, or entity). This approach addresses the perception layer of physical AI, giving models richer structured signal about what is in the world, not just what it looks like. Worth noting that Bifrost's strongest production use cases currently skew toward geospatial and aerial imagery, so how far this pixel-semantic approach transfers to contact-rich robotic manipulation is an open empirical question.</p>
+
+      <h3>2. Finding the right data primitive for physical semantics</h3>
+
+      <p>This is the deeper, harder question. The token-prediction paradigm worked for language not just because of the transformer architecture, but because the training objective (next-token prediction) and the data primitive (language tokens) were co-designed. What is the equivalent for the physical world?</p>
+
+      <p>I believe the most promising current answer is the <strong>pixel-text-action triplet</strong>. Each training example contains three views of the same physical interaction at three levels of abstraction:</p>
+
+      <div class="figure">
+        <svg viewBox="0 0 620 230" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:var(--bg-alt);border-radius:8px;border:1px solid var(--border);" font-family="'Source Sans 3', sans-serif">
+          <text x="310" y="30" text-anchor="middle" font-size="14" font-weight="700" style="fill:var(--text)">The Pixel-Text-Action Triplet</text>
+
+          <!-- Pixels box -->
+          <rect x="30" y="50" width="165" height="110" rx="8" fill="none" stroke="#8b7355" stroke-width="1.5"/>
+          <text x="113" y="75" text-anchor="middle" font-size="13" font-weight="700" style="fill:var(--accent)">Pixels</text>
+          <text x="113" y="96" text-anchor="middle" font-size="10" style="fill:var(--text-light)">Raw perceptual signal</text>
+          <text x="113" y="112" text-anchor="middle" font-size="10" style="fill:var(--text-light)">Rich but unstructured</text>
+          <text x="113" y="132" text-anchor="middle" font-size="9" style="fill:var(--text-muted)">[frame_t ... frame_t+n]</text>
+
+          <!-- Text box -->
+          <rect x="228" y="50" width="165" height="110" rx="8" fill="none" stroke="#8b7355" stroke-width="1.5"/>
+          <text x="311" y="75" text-anchor="middle" font-size="13" font-weight="700" style="fill:var(--accent)">Language</text>
+          <text x="311" y="96" text-anchor="middle" font-size="10" style="fill:var(--text-light)">Semantic interpretation</text>
+          <text x="311" y="112" text-anchor="middle" font-size="10" style="fill:var(--text-light)">Hierarchical structure</text>
+          <text x="311" y="132" text-anchor="middle" font-size="9" style="fill:var(--text-muted)">"pick up red cube, place on shelf"</text>
+
+          <!-- Actions box -->
+          <rect x="426" y="50" width="165" height="110" rx="8" fill="none" stroke="#8b7355" stroke-width="1.5"/>
+          <text x="509" y="75" text-anchor="middle" font-size="13" font-weight="700" style="fill:var(--accent)">Actions</text>
+          <text x="509" y="96" text-anchor="middle" font-size="10" style="fill:var(--text-light)">Causal intervention</text>
+          <text x="509" y="112" text-anchor="middle" font-size="10" style="fill:var(--text-light)">Causally grounded</text>
+          <text x="509" y="132" text-anchor="middle" font-size="9" style="fill:var(--text-muted)">[joint_angles, gripper_force]</text>
+
+          <!-- Connectors -->
+          <line x1="195" y1="105" x2="228" y2="105" stroke="#c4a97d" stroke-width="1.5" stroke-dasharray="4,3"/>
+          <line x1="393" y1="105" x2="426" y2="105" stroke="#c4a97d" stroke-width="1.5" stroke-dasharray="4,3"/>
+
+          <!-- Bottom insight -->
+          <rect x="60" y="185" width="500" height="32" rx="6" fill="none" stroke="#e0ddd5" stroke-width="1"/>
+          <text x="310" y="205" text-anchor="middle" font-size="11" style="fill:var(--text-light)">Together: visually grounded + causally grounded + semantically structured</text>
+        </svg>
+        <div class="caption">The pixel-text-action triplet is the strongest current answer to encoding physical semantics. Each primitive provides a different layer of constraint, forcing the model to learn representations that are coherent across all three simultaneously.</div>
+      </div>
+
+      <p>Text is the critical addition. It provides the compositional semantic structure that pixel prediction and action sequences alone cannot supply. The word "grasp" labels not just what happened but the intent, the object, the relational structure, and the task context. It plays for physical interaction the same role that grammatical structure plays in language: it provides the scaffold that makes generalisation possible.</p>
+
+      <h3>LeCun's JEPA bet</h3>
+
+      <p>This is where <a href="https://techcrunch.com/2026/01/23/whos-behind-ami-labs-yann-lecuns-world-model-startup/" target="_blank">Yann LeCun's AMI Labs</a> makes its contrarian wager. LeCun has argued that pixel-level video prediction is the wrong inductive bias for physical understanding. His reasoning: reconstruction-based objectives (including most video world models) still have a pixel-level loss somewhere in the training loop. This forces representations to encode visually detailed but causally irrelevant features (exact textures, lighting gradients, surface reflections) because the model needs to reconstruct them to minimise loss. This is wasted representational capacity that could be devoted to learning causal structure.</p>
+
+      <p>JEPA (Joint Embedding Predictive Architecture) removes the decoder entirely. Instead of predicting pixels, it predicts <em>representations</em>, forcing the model to learn features organised purely around what is predictively useful, which should be the causally relevant features of the physical world. AMI Labs raised $1.03 billion at a $3.5 billion valuation in March 2026, betting that this architectural choice will prove decisive.</p>
+
+      <p>The counter-bet, held by much of the industry including DreamDojo (NVIDIA), Genmo, and DeepMind, is the connectionist position: that with sufficient scale and the right conditioning signals (action-conditioning, inverse dynamics models, physics-conditioned generation), physical understanding will <em>emerge</em> in the representations, the same way grammatical structure emerged in LLM embeddings without being explicitly designed.</p>
+
+      <h2>Where I'm Placing My Attention</h2>
+
+      <p>If I had to identify the developments most worth watching over the next 12 to 18 months, here is where I'd focus.</p>
+
+      <p>First, <strong>benchmarking that measures physical plausibility, not just visual realism.</strong> The RBench framework is exactly the kind of infrastructure the field needs. The next step is running the research that connects the dots: training robotic policies on video from models with different RBench scores, and measuring whether higher physical plausibility scores actually translate into better real-world policy performance. That study, when it comes, will be one of the most consequential papers in the field.</p>
+
+      <p>Second, <strong>latent-space training.</strong> Most current pipelines follow a sequential workflow: train a world model, use it to generate synthetic video, train a policy on that video via behavioural cloning. <a href="https://danijar.com/project/dreamer4/" target="_blank">Dreamer 4</a> argues this is the wrong order of operations. The agent should train directly inside the world model's latent representation space, never generating pixels during the training loop. This is more compute-efficient, produces denser learning signals, and avoids information loss from pixel generation. It is worth noting that this is <em>related to but distinct from</em> LeCun's JEPA argument. Both advocate for learning in abstract representation space rather than pixel space. But they differ in mechanism: JEPA removes the reconstruction objective from the training signal entirely and applies to self-supervised learning broadly, while Dreamer 4 retains a reconstruction component in the world model training but moves the policy learning loop into latent space via RL. They are complementary ideas pointing in the same direction, not the same proposal. Dreamer 4 has so far been demonstrated at small scale (Minecraft and early robotics experiments), but if it scales to real-world manipulation, it collapses the current pipeline significantly.</p>
+
+      <p>Third, <strong>cross-embodiment transfer.</strong> Gemini Robotics 1.5's zero-shot skill transfer across ALOHA, Bi-arm Franka, and Apollo humanoid robots is the strongest benchmark-validated evidence that a single model can learn representations useful across very different physical embodiments. NVIDIA's DreamDojo also demonstrates multi-robot capability, producing action-conditioned rollouts across four distinct platforms (GR-1, G1, AgiBot, YAM), and explicitly designed its latent action representation for cross-embodiment generalisation. The honest caveat is that DreamDojo's reported headline result (0.995 Pearson correlation with real-world outcomes) speaks to sim-to-real fidelity rather than cross-embodiment transfer benchmarks specifically, so I would not draw a direct equivalence with Gemini Robotics 1.5's zero-shot transfer numbers. But the directional signal from both labs is the same: the field is converging on shared representations that span embodiments, and if that capability continues to mature, it fundamentally changes the economics of robotics. You no longer need to collect separate training data for every robot form factor.</p>
+
+      <hr>
+
+      <p>The frontier of AI is no longer about making models that can talk, or even models that can see. It is about making models that <em>understand how the physical world works</em>: the ability to predict what happens when you push, pull, lift, pour, assemble, and navigate. That understanding is what bridges the gap between a chatbot and a system that can actually do things in the real world.</p>
+
+      <p>We are not there yet. The best video models still score 0.6 on physical plausibility. The best VLAs still fail when the lighting changes. The field's foundational debate (learn from pixels or learn from abstract representations?) remains unresolved. But the pace of progress is extraordinary, and the capital and talent flowing into this space suggest that the next 18 months will be more consequential than the last 18.</p>
+
+      <p>The Cambrian explosion isn't over. It's just reaching the hardest part.</p>
+
+    </article>
+
+    <div class="post-footer">
+      <p><strong>About the author:</strong> I'm Linus, a Singaporean Product Manager currently based in San Francisco. I write about AI systems and what they actually mean for people building with them. The views in this piece are my own.</p>
+      <p>
+        Email: <a href="mailto:seah.linus@gmail.com">seah.linus@gmail.com</a><br>
+        GitHub: <a href="https://github.com/linusseah" target="_blank">linusseah</a>
+      </p>
+      <div style="margin-top: 16px; display: flex; gap: 20px; align-items: center;">
+        <a href="mailto:seah.linus@gmail.com" title="Email" style="color: var(--text-light); text-decoration: none;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="4" width="20" height="16" rx="2"/>
+            <path d="M2 7l10 7 10-7"/>
+          </svg>
+        </a>
+        <a href="https://www.linkedin.com/in/linusseah/" target="_blank" title="LinkedIn" style="color: var(--text-light); text-decoration: none;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="2" width="20" height="20" rx="3"/>
+            <path d="M7 10v7M7 7v.01M12 17v-4a2 2 0 0 1 4 0v4M12 10v7"/>
+          </svg>
+        </a>
+        <a href="https://github.com/linusseah" target="_blank" title="GitHub" style="color: var(--text-light); text-decoration: none;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/>
+          </svg>
+        </a>
+      </div>
+      <p style="font-size:12px; color: var(--text-muted); margin-top:24px;">
+        <em>References:</em><br>
+        · <a href="https://arxiv.org/abs/2006.11239" target="_blank">Denoising Diffusion Probabilistic Models — Ho, Jain, Abbeel (2020)</a><br>
+        · <a href="https://arxiv.org/html/2503.20020v1" target="_blank">Gemini Robotics 1.5 — Google DeepMind (2025)</a><br>
+        · <a href="https://dagroup-pku.github.io/ReVidgen.github.io/" target="_blank">RBench: Rethinking Video Generation for the Embodied World — Peking University &amp; ByteDance Seed (2026)</a><br>
+        · <a href="https://dreamdojo-world.github.io/" target="_blank">NVIDIA DreamDojo — Open-Source Robot World Model (2026)</a><br>
+        · <a href="https://physicalintelligence.company/blog/pi0" target="_blank">π0: A Vision-Language-Action Flow Model — Physical Intelligence (2024)</a><br>
+        · <a href="https://techcrunch.com/2026/01/23/whos-behind-ami-labs-yann-lecuns-world-model-startup/" target="_blank">AMI Labs — Yann LeCun's World Model Startup (TechCrunch, 2026)</a><br>
+        · <a href="https://danijar.com/project/dreamer4/" target="_blank">Dreamer 4 — Danijar Hafner (2025)</a>
+      </p>
+    </div>
+
+  </main>
+
+  <footer>
+    <div class="container">
+      <p><a href="https://github.com/linusseah" target="_blank">GitHub</a> · <a href="https://www.linkedin.com/in/linusseah/" target="_blank">LinkedIn</a> · <a href="mailto:seah.linus@gmail.com">Email</a></p>
+    </div>
+  </footer>
+
+</body>
+</html>
