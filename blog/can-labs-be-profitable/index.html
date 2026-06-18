@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Can AI Labs Actually Be Profitable? — Linus Seah</title>
+  <meta name="description" content="Responding to Dario Amodei's case on the Dwarkesh podcast for how AI labs will make money: individual models are already profitable, and company-level profit arrives when model superiority converts into enterprise workflow lock-in.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+  <nav>
+    <div class="container">
+      <a href="/" class="nav-name"><img src="/images/pp.jpg" alt="Linus Seah" class="nav-photo">Linus Seah</a>
+      <ul class="nav-links">
+        <li><a href="/about/">About</a></li>
+        <li><a href="/projects/">Projects</a></li>
+        <li><a href="/blog/" class="active">Articles</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main class="container">
+
+    <div class="post-header">
+      <div class="series">Applied AI Thinking for Operators</div>
+      <h1>Can AI Labs Actually Be Profitable?</h1>
+      <p class="post-subtitle">Individual models already make money. Companies bleed cash because each training run costs an order of magnitude more than the last. So when does the company turn profitable?</p>
+      <div class="post-meta">
+        By <a href="https://www.linkedin.com/in/linusseah/" target="_blank">Linus Seah</a> · June 2026 · 7 min read<br>
+        In response to <a href="https://www.dwarkesh.com/p/dario-amodei-2?open=false#%C2%A7005849-how-will-ai-labs-actually-make-profit" target="_blank">Dwarkesh Patel × Dario Amodei on how AI labs will make profit</a><br>
+        Written as my entry for the <a href="https://www.dwarkesh.com/p/blog-prize" target="_blank">Dwarkesh Blog Prize</a>, an essay competition run by Dwarkesh Patel.
+      </div>
+      <p>
+        <span class="tag">AI</span>
+        <span class="tag">Foundation Models</span>
+        <span class="tag">Business Strategy</span>
+        <span class="tag">Moats</span>
+        <span class="tag">Enterprise</span>
+      </p>
+    </div>
+
+    <article class="prose">
+
+      <p>On the Dwarkesh podcast, Dario Amodei laid out a case for how AI labs eventually make money: individual models are already profitable, and the cash burn is an artifact of each new training run costing far more than the last. I find the model convincing, but it raises a sharper question that the interview only partly answers. When does the <em>company</em>, not just the model, turn profitable?</p>
+
+      <p>Current <a href="https://techcrunch.com/2025/11/04/anthropic-expects-b2b-demand-to-boost-revenue-to-70b-in-2028-report/" target="_blank">gross margin trajectory</a> bears out <a href="https://www.dwarkesh.com/p/dario-amodei-2?open=false#%C2%A7005849-how-will-ai-labs-actually-make-profit" target="_blank">Dario's model</a> (negative 94% in 2024 to ~50% in 2025, projected 77% by 2028): individual models are already profitable, and companies bleed cash only because each successive training run costs an order of magnitude more than the last. But a <a href="https://arxiv.org/abs/2001.08361" target="_blank">scaling plateau</a> alone doesn't guarantee sustained profitability. It requires two conditions: training cost growth slows, and revenue per unit of intelligence doesn't collapse under competitive pressure. Foundation model companies start making real money when they convert temporary model superiority into enterprise workflow lock-in that outlasts the commoditization cycle.</p>
+
+      <div class="insight-box">
+        <div class="label">The two conditions for sustained profit</div>
+        <p style="margin:0 0 8px 0;">1. <strong>Training cost growth slows.</strong> The exponential climb in cost per generation has to decelerate toward incremental, or the burn never stops.</p>
+        <p style="margin:0;">2. <strong>Revenue per unit of intelligence holds.</strong> Pricing has to resist collapse even as raw model quality commoditizes. This is what workflow lock-in protects.</p>
+      </div>
+
+      <h2>Intelligence, compute, and capital are necessary but insufficient moats</h2>
+
+      <p>Google has the best compute infrastructure and deepest enterprise relationships on earth. Meta has distribution to 3 billion users and competitive open-source models. If the moat were model quality plus infrastructure, they should be winning.</p>
+
+      <p>Anthropic and OpenAI offer a useful natural experiment. Anthropic went enterprise-first and <a href="https://www.saastr.com/anthropic-just-passed-openai-in-revenue-while-spending-4x-less-to-train-their-models/" target="_blank">hit $30B ARR by April 2026, surpassing OpenAI's $25B while spending a quarter of what OpenAI spends on training</a>. OpenAI went consumer-first with 900M weekly users but higher burn. Enterprise-first converts to defensible revenue faster because enterprise contracts expand over time, carry higher retention, and crucially, enterprise customers buy workflow outcomes rather than model access, making them far less sensitive to benchmark leapfrogging. Consumer subscriptions, cancelled in a click when the next model drops, do not have this property.</p>
+
+      <p>The revenue divergence is not explained by benchmark superiority. On <a href="https://www.morphllm.com/best-ai-model-for-coding" target="_blank">SWE-bench Verified, the top six frontier models score within 0.8 points</a> of each other, yet Anthropic's <a href="https://www.anthropic.com/news/anthropic-raises-30-billion-series-g-funding-380-billion-post-money-valuation" target="_blank">500+ enterprises spending $1M+ annually</a> chose Claude despite this parity. Something beyond model intelligence is producing durable differentiation.</p>
+
+      <h2>Workflow lock-in is the mechanism that defends margins</h2>
+
+      <p>Enterprise switching costs are structurally underestimated. For mid-market enterprises and up, procurement cycles run 6 to 9 months, compliance certifications take 12 to 24 months, and signed contracts create binding commitments. Singapore's government recently <a href="https://sausheong.com/agentic-engineering-in-the-wild-ceabfb46a685" target="_blank">deployed agentic AI across public sector agencies</a> with provider-specific risk frameworks and governance structures requiring deep institutional integration that cannot be swapped on a quarterly cycle.</p>
+
+      <p>Client-specific post-training creates model variants that are economically and organizationally costly to replicate in time. Once embedded in an enterprise workflow, a lab fine-tunes on proprietary data, internal feedback signals, and domain-specific RLHF that the client would never expose to a third party. Could a competitor approximate this via synthetic data or similar domain training? In principle, yes. In practice, replicating 18 months of accumulated fine-tuning on a Fortune 500's internal processes requires access, context, and organizational trust that take years to build. The barrier is not technical impossibility but the time cost of replication, and in a market moving this fast, time is the scarcest resource.</p>
+
+      <p>These layers compound. Orchestration frameworks, memory architecture, evaluation stacks, enterprise integrations: each individually replicable, but collectively forming an ecosystem far harder to replicate as a whole.</p>
+
+      <p>Even if the full stack were replicated, switching friction persists. As 2025 Nobel laureate <a href="https://faculty.wcas.northwestern.edu/jmokyr/Berg.pdf" target="_blank">Joel Mokyr has argued</a>, technology adoption is shaped not just by suppliers and customers but by non-market actors: regulators, compliance committees, procurement boards. These actors don't benchmark models. They ask: "If this goes wrong, can we defend the decision to use this vendor?" A lab's safety track record, compliance history, and institutional relationships form trust networks that function as a moat independent of model quality.</p>
+
+      <div class="callout">
+        <strong>The core asymmetry</strong>
+        You can distill weights. You cannot distill trust.
+      </div>
+
+      <p>Claude Code's journey has been instructive. It <a href="https://newsletter.semianalysis.com/p/claude-code-is-the-inflection-point" target="_blank">reached $2.5B in annualized revenue within nine months and now authors roughly 4% of all public GitHub commits</a>, despite <a href="https://www.morphllm.com/comparisons/codex-vs-claude-code" target="_blank">GPT-5.3-Codex leading Terminal-Bench 2.0 at 77.3% versus Claude's 65.4%</a>. The product won on deployment depth, not model intelligence alone.</p>
+
+      <h2>Profit becomes sustainable when both conditions hold</h2>
+
+      <p>Return to the two conditions from the opening. Both need to hold.</p>
+
+      <p><strong>Condition 1: training cost growth slows.</strong> I assume it decelerates from exponential (10x per generation) to incremental (~1.2x) as log-linear returns to scale weaken the incentive for ever-larger runs and physical constraints (power, chip supply) impose ceilings. This is an assumption, but consistent with Anthropic's own projection of positive free cash flow by 2028. The illustrative table below traces the unit economics across four generations, from exponential burn to a post-plateau surplus:</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th></th>
+            <th>Gen 1</th>
+            <th>Gen 2</th>
+            <th>Gen 3</th>
+            <th>Gen 4 (post-plateau)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Training cost</td><td>$1B</td><td>$10B</td><td>$100B</td><td>~$120B</td></tr>
+          <tr><td>Inference cost</td><td>$1B</td><td>$10B</td><td>$100B</td><td>$130B</td></tr>
+          <tr><td>Revenue</td><td>$4B</td><td>$40B</td><td>$300B</td><td>$450B</td></tr>
+          <tr><td>Gross profit (revenue minus inference)</td><td>$3B</td><td>$30B</td><td>$200B</td><td>$320B</td></tr>
+          <tr><td>Net profit (gross profit minus training)</td><td>$2B</td><td>$20B</td><td>$100B</td><td>$200B</td></tr>
+          <tr><td>Next gen's training cost</td><td>$10B</td><td>$100B</td><td>~$120B</td><td>~$140B</td></tr>
+          <tr><td><strong>Company cash after funding next gen</strong></td><td><strong>-$8B</strong></td><td><strong>-$80B</strong></td><td><strong>~-$20B</strong></td><td><strong>+$60B</strong></td></tr>
+        </tbody>
+      </table>
+
+      <p>Numbers are illustrative, not predictive. They encode assumptions about pricing, demand, and cost curves, but show the structural dynamic: company-level profitability emerges when next-generation training costs grow incrementally rather than exponentially.</p>
+
+      <p><strong>Condition 2: revenue per unit of intelligence doesn't collapse.</strong> If labs were selling tokens at market rates, competition would compress margins to near zero. But enterprises embedded in provider-specific workflows buy outcomes, not tokens, and outcomes can be priced on value delivered rather than compute consumed. The lock-in described above prevents revenue from collapsing even as the underlying intelligence becomes commoditized.</p>
+
+      <p>Both conditions are reinforced by <a href="https://www.darrinqualman.com/efficiency-jevons-paradox/" target="_blank">Jevons paradox</a>: as inference costs fall, consumption rises even faster because entirely new use cases emerge.<a href="#fn1" id="ref1" style="border-bottom:none;">[1]</a> Agentic workflows, always-on AI assistants, and real-time enterprise data processing all become viable at lower price points, expanding the pie faster than competition erodes margins.</p>
+
+      <h2>What to watch for</h2>
+
+      <p>Open-source models will close the raw intelligence gap; distillation makes this nearly inevitable. The real question is whether the ecosystem and trust layers also become portable or standardized. If they do, margins collapse. If algorithmic breakthroughs or new paradigms (agents, multimodality) restart exponential capex cycles, the cost plateau never arrives.</p>
+
+      <p>The labs that survive won't be the ones with the highest benchmark scores but the ones that treated model superiority as a distribution wedge, converting a three-month intelligence lead into a multi-year infrastructure position.</p>
+
+    </article>
+
+    <div class="post-footer">
+      <p><strong>About the author:</strong> I'm Linus, a Singaporean Product Manager currently based in San Francisco. I write about building practical AI systems from the perspective of someone who's learning by doing.</p>
+      <p>
+        Email: <a href="mailto:seah.linus@gmail.com">seah.linus@gmail.com</a><br>
+        GitHub: <a href="https://github.com/linusseah" target="_blank">linusseah</a>
+      </p>
+      <div style="margin-top: 16px; display: flex; gap: 20px; align-items: center;">
+        <a href="mailto:seah.linus@gmail.com" title="Email" style="color: var(--text-light); text-decoration: none;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 7l10 7 10-7"/>
+          </svg>
+        </a>
+        <a href="https://www.linkedin.com/in/linusseah/" target="_blank" title="LinkedIn" style="color: var(--text-light); text-decoration: none;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="2" width="20" height="20" rx="3"/><path d="M7 10v7M7 7v.01M12 17v-4a2 2 0 0 1 4 0v4M12 10v7"/>
+          </svg>
+        </a>
+        <a href="https://github.com/linusseah" target="_blank" title="GitHub" style="color: var(--text-light); text-decoration: none;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/>
+          </svg>
+        </a>
+      </div>
+      <div class="footnotes">
+        <p id="fn1"><a href="#ref1" style="border-bottom:none;">[1]</a> Over two centuries, the price of artificial light fell 3,000x while total consumption rose 40,000x.</p>
+      </div>
+      <div class="footnotes">
+        <p><em>References:</em></p>
+        <p>· Dwarkesh Patel × Dario Amodei, <a href="https://www.dwarkesh.com/p/dario-amodei-2?open=false#%C2%A7005849-how-will-ai-labs-actually-make-profit" target="_blank">"How will AI labs actually make profit"</a></p>
+        <p>· TechCrunch, <a href="https://techcrunch.com/2025/11/04/anthropic-expects-b2b-demand-to-boost-revenue-to-70b-in-2028-report/" target="_blank">"Anthropic expects B2B demand to boost revenue to $70B in 2028"</a> (2025)</p>
+        <p>· Kaplan et al., <a href="https://arxiv.org/abs/2001.08361" target="_blank">"Scaling Laws for Neural Language Models"</a> (2020)</p>
+        <p>· SaaStr, <a href="https://www.saastr.com/anthropic-just-passed-openai-in-revenue-while-spending-4x-less-to-train-their-models/" target="_blank">"Anthropic passed OpenAI in revenue while spending 4x less"</a></p>
+        <p>· MorphLLM, <a href="https://www.morphllm.com/best-ai-model-for-coding" target="_blank">"Best AI model for coding"</a></p>
+        <p>· Anthropic, <a href="https://www.anthropic.com/news/anthropic-raises-30-billion-series-g-funding-380-billion-post-money-valuation" target="_blank">"Series G ($30B raise, $380B post-money)"</a></p>
+        <p>· Sau Sheong, <a href="https://sausheong.com/agentic-engineering-in-the-wild-ceabfb46a685" target="_blank">"Agentic Engineering in the Wild"</a></p>
+        <p>· Joel Mokyr (via Berg), <a href="https://faculty.wcas.northwestern.edu/jmokyr/Berg.pdf" target="_blank">on non-market actors in technology adoption</a></p>
+        <p>· SemiAnalysis, <a href="https://newsletter.semianalysis.com/p/claude-code-is-the-inflection-point" target="_blank">"Claude Code is the inflection point"</a></p>
+        <p>· MorphLLM, <a href="https://www.morphllm.com/comparisons/codex-vs-claude-code" target="_blank">"Codex vs Claude Code"</a></p>
+        <p>· Darrin Qualman, <a href="https://www.darrinqualman.com/efficiency-jevons-paradox/" target="_blank">"Efficiency and the Jevons paradox"</a></p>
+      </div>
+    </div>
+
+  </main>
+
+  <footer>
+    <div class="container">
+      <p><a href="https://github.com/linusseah" target="_blank">GitHub</a> · <a href="https://www.linkedin.com/in/linusseah/" target="_blank">LinkedIn</a> · <a href="mailto:seah.linus@gmail.com">Email</a></p>
+    </div>
+  </footer>
+
+</body>
+</html>
