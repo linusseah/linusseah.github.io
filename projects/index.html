@@ -32,6 +32,24 @@
     <ul class="card-list">
 
       <li class="card">
+        <div class="card-title"><a href="https://github.com/linusseah/sg-rag-chatbot" target="_blank">Community RAG Chatbot (Singapore Global Network)</a></div>
+        <div class="card-meta">Jun 2026 · Python · FastAPI · Supabase pgvector · Voyage AI · Claude Haiku · Twilio · Render</div>
+        <div class="card-desc">A retrieval-augmented chatbot for a community of Singaporeans abroad (the Singapore Global Network), answering local questions from 115,000+ WhatsApp messages across seven group chats spanning 2020 to 2026. The pipeline parses and chunks the chat history, embeds it with Voyage AI into Supabase pgvector, retrieves the nearest passages by cosine similarity, and has Claude Haiku answer with attribution. A three-tier confidence system decides when the bot answers, adds a caveat, or defers to the group, favoring accuracy over coverage to avoid hallucinations. Built to weigh a custom RAG stack against an off-the-shelf tool, and to learn where the effort in RAG goes: chunking, embeddings, indexing, and confidence calibration.</div>
+        <div class="card-tags">
+          <span class="tag">RAG</span>
+          <span class="tag">Vector Search</span>
+          <span class="tag">Embeddings</span>
+          <span class="tag">Claude Haiku</span>
+          <span class="tag">Twilio</span>
+        </div>
+        <div style="margin-top: 12px; font-size: 14px;">
+          <a href="https://github.com/linusseah/sg-rag-chatbot" target="_blank" style="color: var(--accent); text-decoration: none;">GitHub &rarr;</a> &middot;
+          <a href="/blog/community-chatbot-build-vs-buy/" style="color: var(--accent); text-decoration: none;">Blog: Build vs Buy &rarr;</a> &middot;
+          <a href="/blog/community-chatbot-rag-stack/" style="color: var(--accent); text-decoration: none;">Blog: The RAG Stack &rarr;</a>
+        </div>
+      </li>
+
+      <li class="card">
         <div class="card-title"><a href="https://instalily-lead-gen.vercel.app/" target="_blank">Agentic Lead Generation Pipeline</a></div>
         <div class="card-meta">Mar 2026 · Next.js · Supabase · Claude · Exa · Vercel</div>
         <div class="card-desc">A production-deployed 3-agent system for automated B2B lead generation. Agent 1 discovers ICP-matching companies using Exa's semantic search (findSimilar). Agent 2 runs a 4-phase enrichment pipeline: company profiling, contact discovery, industry engagement mapping, and qualification scoring against a weighted rubric. Agent 3 drafts personalized outreach per decision-maker. Results are presented in a Next.js dashboard with HubSpot-style UI: filterable lead table, sliding detail panel, inline CRM editing. Deployed on Vercel with Supabase backend. Demonstrates multi-agent orchestration, search strategy design, qualification as explainability (not filtering), and production infrastructure decisions (Streamlit → Next.js, JSON → Supabase).</div>
