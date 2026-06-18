@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>I Tried to Rebuild a Paid Chatbot for Free. Here's the Bill. — Linus Seah</title>
+  <meta name="description" content="Building a RAG chatbot for a community of Singaporeans abroad: what it cost to build rather than buy, and why a working tool still went mostly unused. Part 1 of a two-part series.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+  <nav>
+    <div class="container">
+<a href="/" class="nav-name"><img src="/images/pp.jpg" alt="Linus Seah" class="nav-photo">Linus Seah</a>
+      <ul class="nav-links">
+        <li><a href="/about/">About</a></li>
+        <li><a href="/projects/">Projects</a></li>
+        <li><a href="/blog/" class="active">Articles</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main class="container">
+
+    <div class="post-header">
+      <div class="series">Building a Community RAG Chatbot · Part 1 of 2</div>
+      <h1>I Tried to Rebuild a Paid Chatbot for Free. Here's the Bill.</h1>
+      <p class="post-subtitle">Key lessons from building a RAG-based chatbot for a community of Singaporeans abroad: what it cost to build rather than buy, and why "free" or "AI-powered" does not necessarily mean better.</p>
+      <div class="post-meta">
+        By <a href="https://www.linkedin.com/in/linusseah/" target="_blank">Linus Seah</a> · June 2026 · 11 min read · <a href="https://github.com/linusseah/sg-rag-chatbot" target="_blank">Code</a>
+      </div>
+    </div>
+
+    <article class="prose">
+
+      <p>I belong to a community of Singaporeans living abroad (the <a href="https://singaporeglobalnetwork.gov.sg/" target="_blank">Singapore Global Network</a>) in the San Francisco Bay Area. People arrive, and within their first month they ask the same handful of questions: where to find proper Singaporean food, how to navigate a visa renewal, which neighborhoods to live in, who to call for a car problem. The answers all exist. They are just scattered across seven WhatsApp groups, a Telegram channel, a half-maintained wiki, a couple of Google Docs, and the memories of whoever happens to be online that day.</p>
+
+      <p>I looked at that and saw a textbook problem for retrieval-augmented generation. Point a chatbot at the community's own history, let newcomers ask in plain language, and the same answer no longer has to be typed out for the fortieth time. I was also fairly sure I could build the whole thing for close to nothing. There are paid tools that do exactly this, and my instinct was that they were charging for something I could assemble myself on free tiers.</p>
+
+      <p>So I spent the next week or so building and deploying the chatbot. Two things came out of it. The economics of "free" were not what I had assumed, and once the bot shipped to the community it barely got used, which reminded me that I had once again made the rookie mistake of reaching for a "sexy" solution before I understood what the problem really needed.</p>
+
+      <h2>A quick explainer on what RAG (retrieval-augmented generation) is</h2>
+
+      <p>If you already know what RAG is, skip ahead. If you don't, here is the general idea. A normal chatbot answers from whatever it absorbed during training, so it knows a great deal about the world in general and nothing about your community in particular. Retrieval-augmented generation adds a step in front of the model: when someone asks a question, you first search <em>your own</em> documents for the most relevant passages, then hand those passages to the model and ask it to answer using them. The model stops guessing from memory and answers from your material instead.</p>
+
+      <p>The search step does most of the work. You take the corpus, the seven WhatsApp groups in my case, and split it into small chunks of a few messages each. Each chunk goes through an embedding model, which turns text into a vector, a long list of numbers that captures its meaning, so that two passages about the same thing land near each other in that numeric space even when they share no words. The vectors go into a database. When a question comes in, it is embedded the same way, and the database returns the chunks whose vectors sit closest to it: the nearest matches by meaning rather than by keyword. Those chunks become the context the model answers from.</p>
+
+      <p>For a community knowledge base, that fit is obvious. The answers are grounded in messages real members wrote, so the bot is far less likely to invent things. It can point to where an answer came from. And it knows local specifics, the hawker stall that opened last spring, the immigration lawyer three people recommended, that a general-purpose model could never have learned.</p>
+
+      <h2>Lesson 1: What it cost to build instead of buy</h2>
+
+      <p>I had two options. Buy: pay for a managed product like <a href="https://www.chatbase.co/" target="_blank">Chatbase</a>, point it at the data, and have a working bot inside an hour. Build: assemble a custom stack myself. I was confident the build option was basically free.</p>
+
+      <p>That confidence came from looking at one number and ignoring three. A managed subscription folds in three buckets of cost that a custom build pulls into the open:</p>
+
+      <ol>
+        <li><strong>Setup cost</strong>: getting to a working system in the first place.</li>
+        <li><strong>Maintenance cost</strong>: keeping it working as the corpus grows.</li>
+        <li><strong>Ownership cost</strong>: becoming your own security and operations team.</li>
+      </ol>
+
+      <p>My mistake was thinking only about cost, and only the dollar figure in the first bucket. Start there, since it is the bucket that looks most favorable. The custom build does run on almost nothing: the only line item that costs money is the Claude API that generates answers, around <strong>$5 to $10 a month</strong> at community volume, while the embedding model, database, hosting, and messaging all sit inside free tiers. A managed tool is not free. Chatbase's entry paid tier is around $40 a month, and the tier with the API access and integrations a WhatsApp community bot needs is closer to $150.</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Option</th>
+            <th>Monthly cost</th>
+            <th>What it gives you</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Custom build, MVP</td>
+            <td>$5 to $10</td>
+            <td>One-on-one chat only, cold starts, you run and maintain everything</td>
+          </tr>
+          <tr>
+            <td>Custom build, at parity</td>
+            <td>$20 to $40</td>
+            <td>Groups and no cold start, but still yours to run and maintain</td>
+          </tr>
+          <tr>
+            <td>Chatbase, entry tier</td>
+            <td>~$40</td>
+            <td>Managed hosting, automatic ingestion, basic integrations</td>
+          </tr>
+          <tr>
+            <td>Chatbase, community tier</td>
+            <td>~$150</td>
+            <td>API access, WhatsApp and group integration, analytics, support</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p>On dollars, the build wins clearly. The catch is that the cheap version and the managed version are not the same product. What the $40 to $150 buys is everything a vendor does for you quietly: hosting that never sleeps, ingestion handled on their servers, prebuilt messaging integrations, an analytics dashboard, and someone to email when it breaks. My build was technically free, but it could not match those specs. In particular, three gaps showed up when I went from testing the bot to deploying it for the community.</p>
+
+      <h3>1. The free bot I built could not be added to a group chat</h3>
+
+      <p>My stack talked to WhatsApp through Twilio, a service that lets software send and receive messages over channels like SMS and WhatsApp. On the free plan, that connection runs through Twilio's WhatsApp Sandbox, which only supports one-on-one chats. To use the bot, a member had to open a separate conversation with it and send a join code to activate the sandbox. The sandbox also caps at five connected numbers and lets sessions expire after a quiet spell. The whole thing felt like a demo rather than something deployed.</p>
+
+      <p>The bot still worked one-on-one, so this was not fatal. But my community lives in WhatsApp groups, and being able to drop the bot into a group would have removed most of the friction. People already in the chat could ask it something inline, without opening yet another conversation or remembering a join code. That is the difference between a tool people fall into using and one they have to go out of their way to find.</p>
+
+      <p>Group access means moving to Twilio's Production WhatsApp API, which needs Facebook Business Manager verification and a one-to-three-business-day approval. Since WhatsApp moved to per-message pricing in mid-2025, the running cost is Twilio's roughly $0.005 per message plus Meta's per-template fee, though the free-form replies a member triggers within a 24-hour window are mostly free, so at community volume it is a few dollars a month. A managed tool like Chatbase skips all of this: group and WhatsApp integration is a setting you switch on, not a vendor approval you wait for.</p>
+
+      <div class="warning-box">
+        <div class="label">Trade-off</div>
+        <p style="margin:0;">Free messaging tiers are built for one-on-one testing. The moment you want the bot inside a group, where the community talks, you are on the paid production path. It is not expensive, but it is where "free" quietly becomes "paid."</p>
+      </div>
+
+      <h3>2. The free chatbot needs time to wake up</h3>
+
+      <p>Free hosting comes with a trade-off that is easy to miss. Providers keep their costs down by spinning down servers that sit idle, so if no one has messaged the bot for a while, its server effectively goes to sleep. The next message has to wake it, which takes thirty to sixty seconds. That delay is longer than the roughly ten-second window WhatsApp waits for a reply, so the person sees nothing come back and assumes the bot is broken. For a tool that lives or dies on answering the moment someone asks, that first dead message is hard to recover from. The paid fix is paying for a hosting tier that keeps the server always on, around seven dollars a month.</p>
+
+      <div class="insight-box">
+        <div class="label">The pattern worth keeping</div>
+        <p style="margin:0;">Free tiers are fine at personal scale and compound into product problems at community scale. A sleeping server is invisible when you are the only user poking it. Put a hundred people in front of it and the same free tier produces dead-on-arrival messages, the exact opposite of the always-on reliability a habit needs.</p>
+      </div>
+
+      <h3>3. Maintenance and ownership never show up on the price tag</h3>
+
+      <p>The managed tool hides a re-train button. The custom build does not. Every time the community generates new messages worth knowing about, I have to manually export the chats and re-run the entire ingestion pipeline, roughly every three months. There is no incremental update, because WhatsApp offers no export API, so it is a full re-run each time, not a top-up.</p>
+
+      <p>And then there is everything that comes with owning the system. The corpus contains real people's names and messages. Getting retrieval and answer-confidence tuned correctly is genuine, skilled work rather than a default setting. Those are real hours, and they recur. They are also exactly the work a managed vendor does for you, quietly, as part of the subscription.</p>
+
+      <p>Notice what those three gaps have in common: none of them is about price. The build is cheaper in dollars, even at the tier that adds groups and removes the wake-up delay. The reason to buy is not the money, it is everything you stop having to do yourself: wiring up production messaging, keeping a server warm, re-running the ingestion pipeline, tuning the bot, and having someone to call when it breaks. For a side project I was glad to own that work, because I wanted to learn it. For most teams shipping something real, paying to make all of it disappear might be the rational choice.</p>
+
+      <div class="callout">
+        <strong>The belief that flipped</strong>
+        I went in certain I would build it for free, and on dollars alone I was technically correct. I came out thinking the paid tool was the rational choice for most people, because the price of the custom build was the fifteen to twenty hours to stand it up, the recurring maintenance, and signing up to be my own security and ops team.</p>
+      </div>
+
+      <p>A final hidden complexity deserves a closer look: calibration. It is the most technical of these costs, and the one I underestimated most. A retrieval system never returns a clean yes or no. It returns the closest passages it can find, each with a similarity score, and someone has to decide how good a match has to be before the bot answers at all. Set that bar too low and it will confidently answer from weak, half-relevant snippets. Set it too high and it refuses questions it could have handled. I leaned toward caution, the right instinct for high-stakes advice, but it tipped too far: a member had recommended a good mechanic, the recommendation was sitting in the corpus, and the bot still would not surface it because the match scored just below my threshold. Getting that balance right took real experimentation, and it is exactly the kind of tuning a managed tool hides behind sensible defaults. How the confidence tiers work is the subject of Part 2.</p>
+
+      <div class="next-post">
+        <div class="label">Part 2 of this series</div>
+        <div class="title"><a href="/blog/community-chatbot-rag-stack/">The RAG Stack Behind the Community Chatbot</a></div>
+        <p style="font-size:15px;color:var(--text-light);margin:6px 0 0;font-family:var(--sans);">The engineering companion to this piece: the full pipeline from WhatsApp export to grounded answer, the chunking and embedding decisions, and the confidence-tier system that decides when the bot answers or defers. With the <a href="https://github.com/linusseah/sg-rag-chatbot" target="_blank">code</a>.</p>
+      </div>
+
+      <h2>Lesson 2: Building something sexy doesn't guarantee adoption</h2>
+
+      <p>I put both versions in front of the community, the paid managed bot and my custom build, for about thirty days. To my surprise, or perhaps with hindsight no surprise at all, neither gained much traction.</p>
+
+      <p>As I reflected on why no one was using the bots, I realised I had fallen into a familiar trap: trying to squeeze a real problem into an AI-shaped solution.</p>
+
+      <p>The hypothesis going in was reasonable. Newcomers visibly repeat the same questions, so a bot that answers those questions in natural language, over the community's own history, should get heavy use. Reasonable, but perhaps incomplete in this case.</p>
+
+      <div class="insight-box">
+        <div class="label">The assumption that broke</div>
+        <p style="margin:0;">Repeated questions imply demand for answers. They do not imply demand for a bot. People will ask the same thing forty times and still not want to talk to a machine about it, because the asking was never only about the information.</p>
+      </div>
+
+      <p>Sitting with why a good-enough bot still went unused, three reasons held up:</p>
+
+      <ol>
+        <li><strong>Trust on high-stakes topics.</strong> The questions people care most about, immigration, housing, taxes, are exactly the ones where a wrong answer carries real cost. For those, a hedged answer from a bot is not reassuring. People want a human who will be accountable for being wrong.</li>
+        <li><strong>People prefer asking people.</strong> Posting in the group is not just a query. It gets you social validation, a human in the loop, follow-up questions, and sometimes an offer of help that no retrieval system was ever going to produce. The bot answered the literal question and missed the reason people were asking in a group in the first place.</li>
+        <li><strong>Discoverability and forgetting.</strong> The bot lived a tap away from the conversation, behind a separate link, rather than inside the channel people already used. Out of the channel, out of mind. By the time someone had a question, they had forgotten the bot existed.</li>
+      </ol>
+
+      <div class="warning-box">
+        <div class="label">The discoverability trap</div>
+        <p style="margin:0;">A chatbot one tap away from the conversation might as well not exist. If it is not inside the channel where people already talk, the moment of need passes before anyone remembers to go find it. Adoption is lost not to a better competitor but to forgetting.</p>
+      </div>
+
+      <h3>Wiki as source of truth, chatbot as access layer</h3>
+
+      <p>A <strong>wiki is a source of truth</strong>: centralized, curated, verifiable, durable, the place where the community's knowledge is supposed to live correctly. A <strong>chatbot is an access layer</strong>: natural language, low friction, ideally living right inside WhatsApp or Telegram, a way to <em>get at</em> the truth rather than a place that holds it.</p>
+
+      <p>Conflating the two was my error. I had been treating the chatbot as if it were the knowledge base, when its actual job is to be a convenient door into a knowledge base that exists somewhere more durable. Once they are separated, it becomes clear what each is good for.</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>&nbsp;</th>
+            <th>Wiki</th>
+            <th>Chatbot</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Role</td>
+            <td>Source of truth</td>
+            <td>Access layer</td>
+          </tr>
+          <tr>
+            <td>Best at</td>
+            <td>Exact, verifiable, high-stakes detail that has to be right</td>
+            <td>Broad or ambiguous questions, personalized recommendations, synthesizing across scattered sources</td>
+          </tr>
+          <tr>
+            <td>Weak at</td>
+            <td>Discovery; nobody reads a wiki they have to go find</td>
+            <td>Precision on facts that must not be wrong; should defer here</td>
+          </tr>
+          <tr>
+            <td>Who maintains it</td>
+            <td>Humans, deliberately and continuously</td>
+            <td>Mostly itself, but only as good as the wiki feeding it</td>
+          </tr>
+          <tr>
+            <td>Trust model</td>
+            <td>Curated, so trusted for the hard questions</td>
+            <td>Probabilistic, so should hedge and route back to the wiki</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p>The division of labor falls out of the table. The chatbot wins on broad or fuzzy questions, on personalized recommendations, on pulling threads together from across sources, on surfacing a resource fast. When a question demands an exact, verifiable detail, the bot's job is to defer and point back to the wiki rather than improvise.</p>
+
+      <p>That reframe also fixes the adoption problem, because it changes what the bot is <em>for</em>. If the bot is a thin access layer over a maintained wiki, you can make it earn attention instead of waiting to be summoned:</p>
+
+      <ol>
+        <li><strong>Featured tips.</strong> Surface one genuinely useful thing from the corpus on a schedule, unprompted.</li>
+        <li><strong>"Did you know?" facts.</strong> Small, specific, local nuggets that remind people the bot knows things worth knowing.</li>
+        <li><strong>Popular FAQs.</strong> Periodically push the questions newcomers always ask, before they have to ask.</li>
+        <li><strong>New-content announcements.</strong> When the wiki gains something, have the bot tell the channel.</li>
+        <li><strong>Proactive recommendations.</strong> Nudge people toward resources that match an interest they have shown.</li>
+      </ol>
+
+      <p>Every one of those depends on a maintained wiki underneath it. There is nothing worth featuring, announcing, or recommending if the source of truth is empty or stale.</p>
+
+      <div class="insight-box">
+        <div class="label">The adoption principle</div>
+        <p style="margin:0;">Push beats pull for community bots. A bot that waits to be asked loses to forgetting. A bot that shows up in the channel with something useful, on its own schedule, stays in people's minds long enough to be there when the question finally comes.</p>
+      </div>
+
+      <h2>Where I'm placing my attention next</h2>
+
+      <p>The durable value here was never the chatbot. It is institutionalizing years of scattered community knowledge, the stuff currently living in seven group chats and a handful of people's heads, into a maintained, verifiable wiki, with the chatbot as a deliberately thin layer over the top of it.</p>
+
+      <p>The obstacle is that wikis rot. A source of truth that nobody updates degrades into a source of confident, outdated answers, which is worse than no source at all. The hard problem is not building the wiki. It is building a low-friction loop to keep it current and to deconflict it when two members remember the same fact differently. I am now experimenting with an LLM-powered wiki that helps maintain itself, and a future piece will put that approach side by side with the RAG setup from this series.</p>
+
+      <p>So this is where my attention is going: not the bot, but the maintained source of truth beneath it and the loop that keeps it alive. The chatbot is the easy, visible part. The wiki and its upkeep are the part that determines whether any of this is worth using.</p>
+
+      <div class="callout">
+        <strong>The takeaway</strong>
+        Wiki is the source of truth. Chatbot is the access layer. Build the truth first, and the access layer is worth building. Skip it, and the cleverest bot in the world is just a fast way to surface things that are no longer true.
+      </div>
+
+      <p>Just in case you are a Singaporean abroad reading this, or simply curious, here is the wiki we are maintaining: <a href="https://singaporeconnect.vercel.app/#dmv" target="_blank">singaporeconnect.vercel.app</a>.</p>
+
+      <p>Part 2 is the engineering companion to this piece, for anyone who wants the actual stack and the calibration detail. It walks the pipeline end to end and is anchored to the <a href="https://github.com/linusseah/sg-rag-chatbot" target="_blank">repo</a>, so you can fork it and rebuild your own.</p>
+
+    </article>
+
+    <div class="next-post">
+      <div class="label">Next in this series</div>
+      <div class="title"><a href="/blog/community-chatbot-rag-stack/">Part 2: The RAG Stack Behind the Community Chatbot</a></div>
+      <p style="font-size:15px;color:var(--text-light);margin:6px 0 0;font-family:var(--sans);">How it was wired up: chunking WhatsApp logs, choosing an embedding model, the vector index, and the confidence-tier system that decides when the bot answers or defers. Annotated against the <a href="https://github.com/linusseah/sg-rag-chatbot" target="_blank">code</a>.</p>
+    </div>
+
+    <div class="post-footer">
+      <p>
+        <span class="tag">RAG</span>
+        <span class="tag">Applied AI</span>
+        <span class="tag">Build vs Buy</span>
+        <span class="tag">Community Product</span>
+        <span class="tag">Chatbots</span>
+      </p>
+      <p><strong>About the author:</strong> I'm Linus, a Singaporean Product Manager currently based in San Francisco. I write about applied AI from the perspective of someone trying to understand it well enough to build on it, including the projects that taught me more by not working than by working. This is Part 1 of a two-part series on building a RAG chatbot for a community of Singaporeans abroad.</p>
+      <p>
+        Email: <a href="mailto:seah.linus@gmail.com">seah.linus@gmail.com</a><br>
+        GitHub: <a href="https://github.com/linusseah" target="_blank">linusseah</a>
+      </p>
+      <div style="margin-top: 16px; display: flex; gap: 20px; align-items: center;">
+        <a href="mailto:seah.linus@gmail.com" title="Email" style="color: var(--text-light); text-decoration: none;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 7l10 7 10-7"/>
+          </svg>
+        </a>
+        <a href="https://www.linkedin.com/in/linusseah/" target="_blank" title="LinkedIn" style="color: var(--text-light); text-decoration: none;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="2" width="20" height="20" rx="3"/><path d="M7 10v7M7 7v.01M12 17v-4a2 2 0 0 1 4 0v4M12 10v7"/>
+          </svg>
+        </a>
+        <a href="https://github.com/linusseah" target="_blank" title="GitHub" style="color: var(--text-light); text-decoration: none;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/>
+          </svg>
+        </a>
+      </div>
+      <div class="footnotes">
+        <p>· Project repository: <a href="https://github.com/linusseah/sg-rag-chatbot" target="_blank">github.com/linusseah/sg-rag-chatbot</a></p>
+        <p>· Corpus: 115,014 WhatsApp messages across 7 community groups (2020 to 2026); details and figures in the repo README.</p>
+        <p>· Community details and any individual messages are described in aggregate only; no names, credentials, or private content are reproduced.</p>
+      </div>
+    </div>
+
+  </main>
+
+  <footer>
+    <div class="container">
+      <p><a href="https://github.com/linusseah" target="_blank">GitHub</a> · <a href="https://www.linkedin.com/in/linusseah/" target="_blank">LinkedIn</a> · <a href="mailto:seah.linus@gmail.com">Email</a></p>
+    </div>
+  </footer>
+
+</body>
+</html>

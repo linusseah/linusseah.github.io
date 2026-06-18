@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The RAG Stack Behind the Community Chatbot — Linus Seah</title>
+  <meta name="description" content="The engineering companion to Part 1: the full pipeline from WhatsApp export to grounded answer, the chunking and embedding decisions, the vector index, and the confidence-tier system that decides when the bot answers, hedges, or stays quiet. Annotated against the code.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+  <nav>
+    <div class="container">
+<a href="/" class="nav-name"><img src="/images/pp.jpg" alt="Linus Seah" class="nav-photo">Linus Seah</a>
+      <ul class="nav-links">
+        <li><a href="/about/">About</a></li>
+        <li><a href="/projects/">Projects</a></li>
+        <li><a href="/blog/" class="active">Articles</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main class="container">
+
+    <div class="post-header">
+      <div class="series">Building a Community RAG Chatbot · Part 2 of 2</div>
+      <h1>The RAG Stack Behind the Community Chatbot</h1>
+      <p class="post-subtitle">The engineering companion to Part 1: the pipeline from WhatsApp export to grounded answer, the retrieval decisions that determine whether RAG works, and the confidence thresholds that govern when the bot answers or defers.</p>
+      <div class="post-meta">
+        By <a href="https://www.linkedin.com/in/linusseah/" target="_blank">Linus Seah</a> · June 2026 · 12 min read · <a href="https://github.com/linusseah/sg-rag-chatbot" target="_blank">Code</a>
+      </div>
+    </div>
+
+    <article class="prose">
+
+      <p>I shared the backstory of building this chatbot in <a href="/blog/community-chatbot-build-vs-buy/">Part 1</a>. This is the engineering companion, a closer look at how I built it: the pipeline end to end, and the decisions that shaped it, chunking, embeddings, the vector index, reranking, and the confidence thresholds. The code is in the <a href="https://github.com/linusseah/sg-rag-chatbot" target="_blank">repo</a> if you want to follow along or fork it.</p>
+
+      <h2>The stack</h2>
+
+      <p>The whole system runs on five services, and at the volume this community generates, four of them sit inside free tiers.</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Layer</th>
+            <th>What I used</th>
+            <th>Tier</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Hosting / API</td>
+            <td>Render free plan, FastAPI served by uvicorn</td>
+            <td>Free</td>
+          </tr>
+          <tr>
+            <td>Messaging</td>
+            <td>Twilio WhatsApp Sandbox</td>
+            <td>Free</td>
+          </tr>
+          <tr>
+            <td>Vector store</td>
+            <td>Supabase pgvector, cosine similarity, top-5 <code>match_chunks</code> RPC</td>
+            <td>Free</td>
+          </tr>
+          <tr>
+            <td>Embeddings</td>
+            <td>Voyage <code>voyage-3-lite</code>, 512-dim, document/query input types, batched 64</td>
+            <td>Free</td>
+          </tr>
+          <tr>
+            <td>Generation</td>
+            <td>Anthropic Claude Haiku 4.5, temperature 0</td>
+            <td>Paid (~$5-10/mo)</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p>A few of those choices are decisions anyone rebuilding this would face. The vector store retrieves the top five chunks by cosine similarity through a Postgres RPC (<code>rag/retriever.py</code>), which keeps the database doing the vector math instead of pulling everything into the app. The embedder (<code>rag/embedder.py</code>) tags text with <code>input_type="document"</code> at ingest and <code>input_type="query"</code> at retrieval, which lets Voyage embed the two asymmetrically; a stored message and a user's question are different kinds of text, and telling the model so improves the match. And generation runs Claude Haiku 4.5 at <code>temperature=0</code>, which makes answers deterministic: the same question gets the same answer every time, which matters more than you would think once you start evaluating.</p>
+
+      <h2>The pipeline, from export to grounded answer</h2>
+
+      <p>There are two paths through the system, and they share an embedding model but almost nothing else. The <strong>ingest path</strong> runs once every few months, offline, and turns raw chat history into a searchable index. The <strong>query path</strong> runs in real time, every time someone messages the bot. Drawing them separately is the clearest way to see where the work lives.</p>
+
+      <div class="figure">
+        <svg viewBox="0 0 680 430" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:var(--bg-alt);border-radius:8px;border:1px solid var(--border);" font-family="Source Sans 3, sans-serif">
+          <!-- Ingest path label -->
+          <text x="24" y="34" fill="var(--accent)" font-size="12" font-weight="600" letter-spacing="1.2">INGEST PATH · runs once every few months, offline</text>
+
+          <!-- Ingest row boxes -->
+          <g>
+            <rect x="20" y="48" width="118" height="52" rx="6" fill="var(--bg)" stroke="var(--border)"/>
+            <text x="79" y="70" text-anchor="middle" fill="var(--text)" font-size="12.5" font-weight="600">WhatsApp</text>
+            <text x="79" y="87" text-anchor="middle" fill="var(--text-light)" font-size="11">export</text>
+
+            <rect x="158" y="48" width="118" height="52" rx="6" fill="var(--bg)" stroke="var(--border)"/>
+            <text x="217" y="70" text-anchor="middle" fill="var(--text)" font-size="12.5" font-weight="600">Parse &amp; clean</text>
+            <text x="217" y="87" text-anchor="middle" fill="var(--text-light)" font-size="11">dedup</text>
+
+            <rect x="296" y="48" width="118" height="52" rx="6" fill="var(--bg)" stroke="var(--border)"/>
+            <text x="355" y="70" text-anchor="middle" fill="var(--text)" font-size="12.5" font-weight="600">Chunk</text>
+            <text x="355" y="87" text-anchor="middle" fill="var(--text-light)" font-size="11">20 msg / 5 overlap</text>
+
+            <rect x="434" y="48" width="118" height="52" rx="6" fill="var(--bg)" stroke="var(--border)"/>
+            <text x="493" y="70" text-anchor="middle" fill="var(--text)" font-size="12.5" font-weight="600">Embed</text>
+            <text x="493" y="87" text-anchor="middle" fill="var(--text-light)" font-size="11">voyage-3-lite</text>
+
+            <rect x="572" y="48" width="88" height="52" rx="6" fill="var(--accent)" stroke="var(--accent)"/>
+            <text x="616" y="70" text-anchor="middle" fill="var(--bg)" font-size="12.5" font-weight="600">pgvector</text>
+            <text x="616" y="87" text-anchor="middle" fill="var(--bg)" font-size="11">store</text>
+          </g>
+          <!-- Ingest arrows -->
+          <g stroke="var(--accent)" stroke-width="1.6" fill="none">
+            <path d="M138 74 L156 74"/><path d="M276 74 L294 74"/><path d="M414 74 L432 74"/><path d="M552 74 L570 74"/>
+          </g>
+          <g fill="var(--accent)">
+            <polygon points="156,74 150,71 150,77"/><polygon points="294,74 288,71 288,77"/><polygon points="432,74 426,71 426,77"/><polygon points="570,74 564,71 564,77"/>
+          </g>
+
+          <!-- divider -->
+          <line x1="20" y1="135" x2="660" y2="135" stroke="var(--border)" stroke-dasharray="4 4"/>
+
+          <!-- Query path label -->
+          <text x="24" y="172" fill="var(--accent)" font-size="12" font-weight="600" letter-spacing="1.2">QUERY PATH · runs in real time, per message</text>
+
+          <!-- Query row 1 -->
+          <g>
+            <rect x="20" y="186" width="118" height="52" rx="6" fill="var(--bg)" stroke="var(--border)"/>
+            <text x="79" y="208" text-anchor="middle" fill="var(--text)" font-size="12.5" font-weight="600">User question</text>
+            <text x="79" y="225" text-anchor="middle" fill="var(--text-light)" font-size="11">via WhatsApp</text>
+
+            <rect x="158" y="186" width="118" height="52" rx="6" fill="var(--bg)" stroke="var(--border)"/>
+            <text x="217" y="208" text-anchor="middle" fill="var(--text)" font-size="12.5" font-weight="600">Embed query</text>
+            <text x="217" y="225" text-anchor="middle" fill="var(--text-light)" font-size="11">input_type=query</text>
+
+            <rect x="296" y="186" width="118" height="52" rx="6" fill="var(--bg)" stroke="var(--border)"/>
+            <text x="355" y="208" text-anchor="middle" fill="var(--text)" font-size="12.5" font-weight="600">Retrieve top-5</text>
+            <text x="355" y="225" text-anchor="middle" fill="var(--text-light)" font-size="11">cosine, pgvector</text>
+
+            <rect x="434" y="186" width="118" height="52" rx="6" fill="var(--bg)" stroke="var(--border)"/>
+            <text x="493" y="208" text-anchor="middle" fill="var(--text)" font-size="12.5" font-weight="600">Score &amp; tier</text>
+            <text x="493" y="225" text-anchor="middle" fill="var(--text-light)" font-size="11">max similarity</text>
+          </g>
+          <g stroke="var(--accent)" stroke-width="1.6" fill="none">
+            <path d="M138 212 L156 212"/><path d="M276 212 L294 212"/><path d="M414 212 L432 212"/>
+          </g>
+          <g fill="var(--accent)">
+            <polygon points="156,212 150,209 150,215"/><polygon points="294,212 288,209 288,215"/><polygon points="432,212 426,209 426,215"/>
+          </g>
+          <!-- elbow down from Score & tier -->
+          <path d="M493 238 L493 268" stroke="var(--accent)" stroke-width="1.6" fill="none"/>
+          <polygon points="493,268 490,262 496,262" fill="var(--accent)"/>
+
+          <!-- Tier branch -->
+          <text x="24" y="290" fill="var(--text-muted)" font-size="11" font-weight="600">Three outcomes on max cosine similarity:</text>
+          <g>
+            <rect x="20" y="302" width="200" height="60" rx="6" fill="var(--bg)" stroke="var(--border)"/>
+            <text x="120" y="324" text-anchor="middle" fill="var(--text)" font-size="12.5" font-weight="600">&#8805; 0.65 &nbsp;HIGH</text>
+            <text x="120" y="342" text-anchor="middle" fill="var(--text-light)" font-size="11">answer with attribution</text>
+            <text x="120" y="356" text-anchor="middle" fill="var(--text-light)" font-size="11">(via Claude Haiku 4.5)</text>
+
+            <rect x="240" y="302" width="200" height="60" rx="6" fill="var(--bg)" stroke="var(--border)"/>
+            <text x="340" y="324" text-anchor="middle" fill="var(--text)" font-size="12.5" font-weight="600">0.55&#8211;0.64 &nbsp;LOW</text>
+            <text x="340" y="342" text-anchor="middle" fill="var(--text-light)" font-size="11">answer + caveat +</text>
+            <text x="340" y="356" text-anchor="middle" fill="var(--text-light)" font-size="11">"ask the group"</text>
+
+            <rect x="460" y="302" width="200" height="60" rx="6" fill="var(--bg)" stroke="var(--border)"/>
+            <text x="560" y="324" text-anchor="middle" fill="var(--text)" font-size="12.5" font-weight="600">&lt; 0.55 &nbsp;FALLBACK</text>
+            <text x="560" y="342" text-anchor="middle" fill="var(--text-light)" font-size="11">no recommendation,</text>
+            <text x="560" y="356" text-anchor="middle" fill="var(--text-light)" font-size="11">defer to the group</text>
+          </g>
+          <text x="340" y="400" text-anchor="middle" fill="var(--text-muted)" font-size="11">The tier decides whether the model even gets to speak, and in what voice.</text>
+        </svg>
+        <div class="caption">The two paths through the system. Ingest (top) runs offline and builds the index; the query path (bottom) runs per message and ends in a confidence tier that governs how the bot responds. Both paths share only the embedding model.</div>
+      </div>
+
+      <p>For scale: the corpus is 115,014 WhatsApp messages across seven community groups spanning 2020 to 2026, which the ingest path turns into 7,669 embedded chunks. That came to roughly 5.8 million tokens embedded one time, comfortably inside Voyage's free tier. The rest of this piece is about the decisions inside those boxes.</p>
+
+      <h2>Chunking text well takes skill</h2>
+
+      <p>Before anything gets embedded, the raw chat history has to be cut into pieces. This sounds like plumbing, and it is the single decision that most quietly determines whether retrieval works, because you can only ever retrieve a whole chunk. If the right answer is split across a chunk boundary, no embedding model in the world will save you.</p>
+
+      <p>The repo cuts WhatsApp messages with a sliding window of 20 messages and 5 messages of overlap (<code>ingestion/chunker.py</code>). The framework behind that choice is a straight tradeoff: smaller chunks raise precision because each one is about one thing, while larger chunks preserve context so an answer is not severed from the question that prompted it. Overlap is the hedge against boundary-splitting, at the cost of storing some text twice. Most production systems land around 200 to 500 tokens per chunk with 10 to 20 percent overlap (<a href="https://stackviv.ai/blog/chunking-strategies-rag" target="_blank">Stackviv</a>, <a href="https://weaviate.io/blog/chunking-strategies-for-rag" target="_blank">Weaviate</a>).</p>
+
+      <p>The strategies fall into three families, each with different costs:</p>
+
+      <ol>
+        <li><strong>Fixed-size</strong> chunking cuts every N tokens regardless of meaning. It is the fallback: cheap, simple, and blind to where ideas begin and end.</li>
+        <li><strong>Recursive</strong> chunking splits on structure first (paragraphs, then sentences) and is the sensible default for most documents (<a href="https://redis.io/blog/chunking-strategy-rag-pipelines/" target="_blank">Redis</a>).</li>
+        <li><strong>Semantic</strong> chunking groups text by meaning using embeddings, buying maybe two to three points of recall over recursive, but the cost scales with the corpus, so reserve it for a measured retrieval problem rather than a default (<a href="https://www.f22labs.com/blogs/7-chunking-strategies-in-rag-you-need-to-know/" target="_blank">F22 Labs</a>).</li>
+      </ol>
+
+      <p>Chat logs are a hostile chunking target. A clean document has paragraphs and headings that tell you where to cut. A group chat has topic drift inside a single window, names dropped mid-conversation, and a recommendation that arrives three messages after the question that prompted it. A fixed 20-message window will sometimes wrap a restaurant recommendation together with an unrelated argument about parking, and the embedding for that chunk is now a blurry average of both. The repo's own notes flag exactly this: service-provider recommendations embed poorly, and a wider 30-to-40-message window might capture them better (<code>TIERED_CONFIDENCE_SUMMARY.md</code>).</p>
+
+      <div class="insight-box">
+        <div class="label">The chunking principle</div>
+        <p style="margin:0;">You can only retrieve what you chunked together. Tune the window to the shape of your data, not to a blog post's default. For clean documents, recursive splitting around 200 to 500 tokens is a safe start. For chat logs, the right window is wider than feels natural, because the answer and the question that prompted it are often several messages apart.</p>
+      </div>
+
+      <h2>The embedding model is a quality lever you can pull cheaply</h2>
+
+      <p>An embedding model turns text into a vector, and retrieval is just finding the stored vectors closest to the query's vector. The quality of that model sets a ceiling on everything downstream: if two genuinely related messages land far apart in vector space, no amount of clever prompting recovers the match.</p>
+
+      <p>I used <code>voyage-3-lite</code>, the low-cost, low-latency tier at 512 dimensions. The reason to know the tiers is that moving up one is one of the cheapest quality wins available. Voyage reports <code>voyage-3-lite</code> beating OpenAI's <code>text-embedding-3-large</code> by about 3.82 percent on average, while the larger <code>voyage-3</code> at 1024 dimensions beats it by about 7.55 percent (<a href="https://blog.voyageai.com/2024/09/18/voyage-3/" target="_blank">Voyage</a>). Embedding quality bounds retrieval relevance, and retrieval relevance bounds the hallucination rate, so a better embedder is a lever on the whole system, not just the search step (<a href="https://arxiv.org/abs/2512.15068" target="_blank">arXiv 2512.15068</a>).</p>
+
+      <p>One practical note if you are comparing models yourself: compare on the MTEB <em>Retrieval</em> sub-leaderboard using nDCG@10, not the headline average. The overall MTEB score blends in classification and clustering tasks that have nothing to do with how well a model retrieves, so a model can look great on the average and middling at the only job you care about here (<a href="https://app.ailog.fr/en/blog/guides/choosing-embedding-models" target="_blank">Ailog</a>).</p>
+
+      <h2>The index type you never picked still has a tradeoff</h2>
+
+      <p>Once vectors are stored, something has to find the nearest ones fast. pgvector gives you three ways to do that, and most people accept the default without realizing they made a choice. The three options are flat (an exact, brute-force scan of every vector), IVFFlat (which partitions vectors into lists and only searches the nearest few), and HNSW (a navigable graph that hops toward the closest neighbors).</p>
+
+      <p>HNSW is the safer default under roughly 10 million vectors with active writes: it delivers large gains in throughput and tail latency over IVFFlat at equal recall, at the cost of two to five times the memory. Both let you trade recall for speed, but through different knobs: IVFFlat via <code>nprobe</code> (how many lists to scan, roughly linear), HNSW via <code>ef_search</code> (how wide to search the graph). On one benchmark, pushing HNSW recall from about 0.8 to 0.95 cost roughly 31 percent more latency (<a href="https://bigdataboutique.com/blog/hnsw-vs-ivfflat-how-to-choose-the-right-vector-index" target="_blank">BigData Boutique</a>, <a href="https://medium.com/@bavalpreetsinghh/pgvector-hnsw-vs-ivfflat-a-comprehensive-study-21ce0aaab931" target="_blank">pgvector study</a>).</p>
+
+      <div class="warning-box">
+        <div class="label">Premature optimization</div>
+        <p style="margin:0;">At a small community corpus, the index choice barely matters, and that is the lesson. With 7,669 chunks, even an exact flat scan returns in milliseconds. Agonizing over HNSW versus IVFFlat is premature until you have either real scale (millions of vectors) or measured latency pain. Pick the default, ship, and revisit the index only when a number tells you to.</p>
+      </div>
+
+      <h2>Reranking, and why I skipped it</h2>
+
+      <p>Sometimes top-5 retrieval returns chunks that are roughly right but not the best available, the relevant one sitting at rank 7 instead of rank 3. The standard fix is two-stage retrieval, and it is the single highest-leverage upgrade I left on the table.</p>
+
+      <p>The framework: the first stage is a fast bi-encoder (the embedding search I already have) that casts a wide net over 50 to 100 candidates, optimizing for recall. The second stage is a cross-encoder reranker that reads the query and each candidate together and scores their relevance directly, optimizing for precision. Bi-encoders are fast because they embed query and document separately; cross-encoders are slower but sharper because they look at both at once, which is why you only run one over a shortlist. Reported gains are large: Cohere Rerank 3.5 lifts BEIR results about 23.4 percent over hybrid search, and one study cites roughly a 40 percent accuracy improvement from adding a reranker (<a href="https://www.pinecone.io/learn/series/rag/rerankers/" target="_blank">Pinecone</a>, <a href="https://app.ailog.fr/en/blog/news/reranking-cross-encoders-study" target="_blank">Ailog</a>).</p>
+
+      <p>It is on the repo's future-work list alongside hybrid BM25 search, and in hindsight it is what I would add first. A reranker would have rescued some of the answerable-but-rejected questions the confidence system was throwing away, which is the next section.</p>
+
+      <h2>Confidence thresholding: the hallucination-versus-refusal dial</h2>
+
+      <p>This is the centerpiece, because it is where the project stopped being a tutorial and started being a judgment call. Once you retrieve chunks, you have a similarity score for each. The question is what to <em>do</em> with that score, and the naive answer (always feed the top chunks to the model and let it talk) is how you get a confident, fluent, wrong answer.</p>
+
+      <p>The build uses a three-tier system keyed on the maximum cosine similarity across the retrieved chunks (<code>rag/pipeline.py</code>, <code>TIERED_CONFIDENCE_SUMMARY.md</code>). The thresholds are not magic numbers from a paper; they were tuned against this specific corpus:</p>
+
+      <pre><code># config: confidence thresholds (cosine similarity)
+MIN_SIMILARITY        = 0.50   # below this, drop the chunk entirely
+LOW_CONFIDENCE_THRESHOLD  = 0.55   # 0.55-0.64 -> answer, but hedge
+HIGH_QUALITY_THRESHOLD    = 0.65   # >= 0.65   -> answer with attribution</code></pre>
+
+      <p>Those three constants produce three behaviors:</p>
+
+      <ol>
+        <li><strong>0.65 and above, HIGH.</strong> The bot answers normally, with attribution back to the community messages it drew from.</li>
+        <li><strong>0.55 to 0.64, LOW.</strong> The bot answers, but with a "limited match" caveat, shows its provenance, and suggests asking the group to confirm. It speaks, but in a quieter voice.</li>
+        <li><strong>Below 0.55, FALLBACK.</strong> The bot declines: "I don't have a recommendation for that yet, try asking the group directly." No improvising from a weak match.</li>
+      </ol>
+
+      <p>You can watch the dial work across real queries. Asking for Singaporean food scores 0.796 and asking about pineapple tarts scores 0.737, both clean HIGH answers. Indian restaurants comes in at 0.581, a LOW answer delivered with a hedge. Ski resorts (0.272) and yoga studios (0.439) fall through to the fallback, correctly, because the corpus genuinely does not cover them.</p>
+
+      <div class="figure">
+        <svg viewBox="0 0 680 300" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:var(--bg-alt);border-radius:8px;border:1px solid var(--border);" font-family="Source Sans 3, sans-serif">
+          <!-- axis -->
+          <text x="24" y="30" fill="var(--text-muted)" font-size="11" font-weight="600">Max cosine similarity of retrieved chunks &#8594;</text>
+          <line x1="40" y1="200" x2="640" y2="200" stroke="var(--text-muted)" stroke-width="1"/>
+          <!-- scale ticks 0.2 to 0.9 mapped to x 40..640 -->
+          <g fill="var(--text-muted)" font-size="10" text-anchor="middle">
+            <text x="40" y="218">0.20</text>
+            <text x="211" y="218">0.40</text>
+            <text x="383" y="218">0.55</text>
+            <text x="469" y="218">0.65</text>
+            <text x="640" y="218">0.90</text>
+          </g>
+          <g stroke="var(--text-muted)" stroke-width="1">
+            <line x1="40" y1="196" x2="40" y2="204"/>
+            <line x1="383" y1="196" x2="383" y2="204"/>
+            <line x1="469" y1="196" x2="469" y2="204"/>
+            <line x1="640" y1="196" x2="640" y2="204"/>
+          </g>
+
+          <!-- bands: x for 0.55 = 40 + (0.55-0.2)/0.7*600 = 40+300=340? recompute: range 0.2..0.9 width 0.7 over 600px => px per unit 857. 0.55 -> 40+(0.35)*857=340; 0.65 -> 40+(0.45)*857=426 -->
+          <!-- FALLBACK band 0.2-0.55 -->
+          <rect x="40" y="70" width="300" height="118" rx="5" fill="var(--bg-alt)" stroke="var(--border)"/>
+          <text x="190" y="92" text-anchor="middle" fill="var(--accent)" font-size="12" font-weight="700" letter-spacing="0.8">FALLBACK &lt; 0.55</text>
+          <text x="190" y="112" text-anchor="middle" fill="var(--text-light)" font-size="11">declines, defers to the group</text>
+          <!-- LOW band 0.55-0.65 -->
+          <rect x="340" y="70" width="86" height="118" rx="5" fill="var(--tag-bg)" stroke="var(--border)"/>
+          <text x="383" y="92" text-anchor="middle" fill="var(--accent)" font-size="11" font-weight="700">LOW</text>
+          <text x="383" y="108" text-anchor="middle" fill="var(--text-light)" font-size="10">hedge +</text>
+          <text x="383" y="121" text-anchor="middle" fill="var(--text-light)" font-size="10">provenance</text>
+          <!-- HIGH band 0.65-0.9 -->
+          <rect x="426" y="70" width="214" height="118" rx="5" fill="var(--bg)" stroke="var(--accent)"/>
+          <text x="533" y="92" text-anchor="middle" fill="var(--accent)" font-size="12" font-weight="700" letter-spacing="0.8">HIGH &#8805; 0.65</text>
+          <text x="533" y="112" text-anchor="middle" fill="var(--text-light)" font-size="11">answer with attribution</text>
+
+          <!-- example markers: x = 40 + (score-0.2)*857.14 -->
+          <!-- yoga 0.439 -> 40+0.239*857=245 -->
+          <g>
+            <circle cx="245" cy="200" r="4" fill="var(--accent)"/>
+            <line x1="245" y1="200" x2="245" y2="240" stroke="var(--accent)" stroke-width="0.8" stroke-dasharray="2 2"/>
+            <text x="245" y="255" text-anchor="middle" fill="var(--text-light)" font-size="10">yoga 0.44</text>
+          </g>
+          <!-- ski 0.272 -> 40+0.072*857=102 -->
+          <g>
+            <circle cx="102" cy="200" r="4" fill="var(--accent)"/>
+            <line x1="102" y1="200" x2="102" y2="270" stroke="var(--accent)" stroke-width="0.8" stroke-dasharray="2 2"/>
+            <text x="102" y="285" text-anchor="middle" fill="var(--text-light)" font-size="10">ski 0.27</text>
+          </g>
+          <!-- indian 0.581 -> 40+0.381*857=367 -->
+          <g>
+            <circle cx="367" cy="200" r="4" fill="var(--accent)"/>
+            <line x1="367" y1="200" x2="367" y2="240" stroke="var(--accent)" stroke-width="0.8" stroke-dasharray="2 2"/>
+            <text x="367" y="255" text-anchor="middle" fill="var(--text-light)" font-size="10">Indian 0.58</text>
+          </g>
+          <!-- tarts 0.737 -> 40+0.537*857=500 -->
+          <g>
+            <circle cx="500" cy="200" r="4" fill="var(--accent)"/>
+            <line x1="500" y1="200" x2="500" y2="270" stroke="var(--accent)" stroke-width="0.8" stroke-dasharray="2 2"/>
+            <text x="500" y="285" text-anchor="middle" fill="var(--text-light)" font-size="10">tarts 0.74</text>
+          </g>
+          <!-- food 0.796 -> 40+0.596*857=551 -->
+          <g>
+            <circle cx="551" cy="200" r="4" fill="var(--accent)"/>
+            <line x1="551" y1="200" x2="551" y2="240" stroke="var(--accent)" stroke-width="0.8" stroke-dasharray="2 2"/>
+            <text x="551" y="255" text-anchor="middle" fill="var(--text-light)" font-size="10">SG food 0.80</text>
+          </g>
+        </svg>
+        <div class="caption">Real queries plotted on the confidence dial. Read left to right as retrieval confidence rising. Food and pineapple tarts land in HIGH; Indian restaurants squeaks into the hedged LOW band; ski resorts and yoga fall through to the fallback because the corpus genuinely lacks them.</div>
+      </div>
+
+      <p>I tuned these thresholds to cut hallucinations, and they worked, but they made the bot too conservative. The clearest case: a member had genuinely recommended a good mechanic, the data was in the corpus, and the bot still refused, because the conversational phrasing ("does anyone know a guy for...") scored only 0.30 to 0.54 against a direct query. The information existed. The bot would not surface it. That is a false refusal, and a fixed threshold produces them by design.</p>
+
+      <p>It gets worse when you try to generalize. A fixed threshold like 0.5 that delivers around 90 percent recall on one dataset can collapse to roughly 60 percent on another, because what counts as a "confident" similarity score depends entirely on the corpus and the embedding model (<a href="https://arxiv.org/abs/2512.15068" target="_blank">arXiv 2512.15068</a>). Thresholds do not transfer. You cannot copy mine and expect them to work on your data; they have to be tuned per corpus.</p>
+
+      <p>The tiered design is my considered answer to that problem. Instead of one silent cutoff that either answers or refuses, the middle LOW band lets the bot answer <em>with</em> caveats and provenance, which turns a binary into a graceful degradation. It is a reusable operator pattern: when you are unsure whether to trust a retrieval, do not choose between confident and silent. Add a third state that speaks honestly about its own uncertainty.</p>
+
+      <div class="warning-box">
+        <div class="label">The thing to internalize</div>
+        <p style="margin:0;">A confidence threshold is a values choice, not just a number. Where you set it decides how often the bot is confidently wrong versus uselessly silent, and there is no setting that avoids both. You are choosing which failure you can live with, on behalf of your users. That is a product and ethics decision wearing the costume of a config constant.</p>
+      </div>
+
+      <h2>What the evaluation showed</h2>
+
+      <p>I ran a golden set of known question-answer pairs to put numbers on the behavior, and the scores tell a consistent story. Factual accuracy came in at 8.2 out of 10, but completeness was 5.0, relevance 5.6, and overall 4.8. No-answer detection was a perfect 100 percent, catching all six questions the corpus could not answer.</p>
+
+      <p>Read those numbers together and the design philosophy is right there: high accuracy, perfect refusal of unanswerable questions, mediocre completeness. The bot is rarely wrong and never bluffs, but it often answers less fully than it could, which is exactly the conservative tuning showing up in the metrics. I chose accuracy over coverage on purpose, because in a community giving advice on immigration and housing, a confident wrong answer is far more damaging than a cautious incomplete one. The evaluation confirms I got the tradeoff I aimed for, including its downside.</p>
+
+      <p>Three design choices fall out of that stance, each deliberate rather than accidental:</p>
+
+      <ul>
+        <li><strong>Attribution is always hedged.</strong> The bot says "A member mentioned..." rather than stating a recommendation as settled fact, because the source is one person's message, not a verified truth.</li>
+        <li><strong>Generation is deterministic.</strong> At <code>temperature=0</code>, the same question yields the same answer, which makes the system testable. You cannot evaluate a bot whose answers drift run to run.</li>
+        <li><strong>It is stateless by design.</strong> The system is RAG-only with no conversational memory, so a follow-up like "what about their hours?" fails: the bot has no idea what "their" refers to. Each query is answered fresh, in isolation. That is a real limitation, and a deliberate scope cut for a first version.</li>
+      </ul>
+
+      <h2>Security and PII are now your problem</h2>
+
+      <p>This is the part a managed tool quietly handles and a custom build does not. The moment you own the stack, you own its safety defaults, and the corpus here made that concrete: it holds real people's names and messages. Asked the right way, the bot could assemble a small biography of a real community member from scattered mentions. That is not a hypothetical; it is what a retrieval system over personal chat history does unless you stop it.</p>
+
+      <p>The surface is broader than just names. Sensitive domains like immigration and tax advice need disclaimers, because a hedged bot answer is not legal counsel. Prompt injection and abuse need guardrails. And queries get logged by the messaging provider for around 30 days, so even the questions people ask are data you are now responsible for.</p>
+
+      <p>The mitigations I reached for, as a pattern rather than a finished solution: system-prompt rules that forbid profiling or assembling biographies of individuals; PII handling at the data layer, weighed carefully against the fact that stripping names also strips the attribution that makes answers trustworthy; and output filtering as a last line. None of this is solved. It is the kind of work that does not appear in a RAG tutorial and consumes real hours once the system touches real people.</p>
+
+      <div class="insight-box">
+        <div class="label">The pattern worth keeping</div>
+        <p style="margin:0;">Buying a chatbot also buys someone else's safety defaults. A managed vendor has already made the hard calls about PII, profiling, and abuse, and folded them into the price. Build it yourself and those decisions are now yours to make, get wrong, and own. The bot is the easy part; being responsible for what it can say about real people is not.</p>
+      </div>
+
+      <h2>What I would build next</h2>
+
+      <p>The repo carries a future-work list. Having lived with the system, I would order it like this, with the first three the ones I would do:</p>
+
+      <ol>
+        <li><strong>Hybrid search and a reranker.</strong> Add BM25 keyword matching alongside the semantic search so exact terms ("kopitiam", a specific stall name) are not lost to embedding fuzziness, then put a cross-encoder reranker on top. This is the most direct fix for the false refusals.</li>
+        <li><strong>Query expansion.</strong> Rewrite a conversational question into a cleaner retrieval query before embedding it, which is what the mechanic example needed: the phrasing, not the data, was the problem.</li>
+        <li><strong>Per-category thresholds.</strong> One global cutoff cannot be right for both restaurant recommendations and immigration advice. Different topics deserve different confidence bars.</li>
+        <li><strong>A stronger embedder.</strong> Move to <code>voyage-3</code> at 1024 dimensions for the cheap relevance bump, or add the reranker first and measure whether the embedder is still the bottleneck.</li>
+        <li><strong>Temporal decay.</strong> Down-weight stale recommendations, because a hawker stall that closed in 2023 should not outrank one that opened last month.</li>
+        <li><strong>A Singlish glossary.</strong> Help the embedder understand that "shiok" and "siok" mean the same thing, and that "rojak" is food, not chaos.</li>
+        <li><strong>Optional conversational memory.</strong> Reframe RAG as a tool the model can call rather than a fixed prefix, which would let follow-up questions work, at roughly double the cost per query.</li>
+      </ol>
+
+      <h2>Where this leaves the project</h2>
+
+      <p>Building this was a great way to learn RAG, and almost none of the learning was about the model. The retrieve-then-generate loop is a weekend's work. The hours went into calibration, deciding when a retrieval is trustworthy enough to speak, and into safety, deciding what a bot is allowed to say about real people. Those are the parts that separate a demo from something you would put in front of a community, and they are exactly the parts no tutorial covers.</p>
+
+      <p>If you want to fork it, change the thresholds, or just read how the pieces fit, it is all in the <a href="https://github.com/linusseah/sg-rag-chatbot" target="_blank">repo</a>. And if you came here from <a href="/blog/community-chatbot-build-vs-buy/">Part 1</a>, the loop closes the way it opened: the engineering was never the hard part. The judgment was.</p>
+
+      <div class="next-post">
+        <div class="label">Coming in a future post</div>
+        <div class="title">RAG vs the Alternatives: When Not to Retrieve</div>
+        <p style="font-size:15px;color:var(--text-light);margin:6px 0 0;font-family:var(--sans);">RAG was the right call for this project, but it is one option among several. A later piece weighs it against stuffing everything into a long context window, fine-tuning on the corpus, and letting an agent search live, and where each one wins.</p>
+      </div>
+
+    </article>
+
+    <div class="next-post">
+      <div class="label">Earlier in this series</div>
+      <div class="title"><a href="/blog/community-chatbot-build-vs-buy/">Part 1: I Tried to Rebuild a Paid Chatbot for Free. Here's the Bill.</a></div>
+      <p style="font-size:15px;color:var(--text-light);margin:6px 0 0;font-family:var(--sans);">The story and the lessons: why I built it, why "free" was the wrong frame, and why even a working bot barely got used.</p>
+    </div>
+
+    <div class="post-footer">
+      <p>
+        <span class="tag">RAG</span>
+        <span class="tag">Applied AI</span>
+        <span class="tag">Embeddings</span>
+        <span class="tag">Vector Search</span>
+        <span class="tag">LLM Engineering</span>
+      </p>
+      <p><strong>About the author:</strong> I'm Linus, a Singaporean Product Manager currently based in San Francisco. I write about applied AI from the perspective of someone trying to understand it well enough to build on it, including the projects that taught me more by not working than by working. This is Part 2 of a two-part series on building a RAG chatbot for a community of Singaporeans abroad.</p>
+      <p>
+        Email: <a href="mailto:seah.linus@gmail.com">seah.linus@gmail.com</a><br>
+        GitHub: <a href="https://github.com/linusseah" target="_blank">linusseah</a>
+      </p>
+      <div style="margin-top: 16px; display: flex; gap: 20px; align-items: center;">
+        <a href="mailto:seah.linus@gmail.com" title="Email" style="color: var(--text-light); text-decoration: none;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 7l10 7 10-7"/>
+          </svg>
+        </a>
+        <a href="https://www.linkedin.com/in/linusseah/" target="_blank" title="LinkedIn" style="color: var(--text-light); text-decoration: none;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="2" width="20" height="20" rx="3"/><path d="M7 10v7M7 7v.01M12 17v-4a2 2 0 0 1 4 0v4M12 10v7"/>
+          </svg>
+        </a>
+        <a href="https://github.com/linusseah" target="_blank" title="GitHub" style="color: var(--text-light); text-decoration: none;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/>
+          </svg>
+        </a>
+      </div>
+      <div class="footnotes">
+        <p><em>References:</em></p>
+        <p>· Project repository: <a href="https://github.com/linusseah/sg-rag-chatbot" target="_blank">github.com/linusseah/sg-rag-chatbot</a></p>
+        <p>· Voyage AI, <a href="https://blog.voyageai.com/2024/09/18/voyage-3/" target="_blank">voyage-3 and voyage-3-lite</a>; Ailog, <a href="https://app.ailog.fr/en/blog/guides/choosing-embedding-models" target="_blank">choosing embedding models (MTEB)</a>.</p>
+        <p>· Chunking: <a href="https://stackviv.ai/blog/chunking-strategies-rag" target="_blank">Stackviv</a>, <a href="https://weaviate.io/blog/chunking-strategies-for-rag" target="_blank">Weaviate</a>, <a href="https://redis.io/blog/chunking-strategy-rag-pipelines/" target="_blank">Redis</a>, <a href="https://www.f22labs.com/blogs/7-chunking-strategies-in-rag-you-need-to-know/" target="_blank">F22 Labs</a>.</p>
+        <p>· Index: <a href="https://bigdataboutique.com/blog/hnsw-vs-ivfflat-how-to-choose-the-right-vector-index" target="_blank">BigData Boutique</a>, <a href="https://medium.com/@bavalpreetsinghh/pgvector-hnsw-vs-ivfflat-a-comprehensive-study-21ce0aaab931" target="_blank">pgvector study</a>.</p>
+        <p>· Reranking: <a href="https://www.pinecone.io/learn/series/rag/rerankers/" target="_blank">Pinecone</a>, <a href="https://app.ailog.fr/en/blog/news/reranking-cross-encoders-study" target="_blank">Ailog</a>. Thresholds: <a href="https://arxiv.org/abs/2512.15068" target="_blank">arXiv 2512.15068</a>.</p>
+        <p>· Community details and any individual messages are described in aggregate only; no names, credentials, or private content are reproduced.</p>
+      </div>
+    </div>
+
+  </main>
+
+  <footer>
+    <div class="container">
+      <p><a href="https://github.com/linusseah" target="_blank">GitHub</a> · <a href="https://www.linkedin.com/in/linusseah/" target="_blank">LinkedIn</a> · <a href="mailto:seah.linus@gmail.com">Email</a></p>
+    </div>
+  </footer>
+
+</body>
+</html>
