@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kepler v0.1: World Encoder for Robotic Perception — Linus Seah</title>
+  <meta name="description" content="Written for Menlo Research: a multimodal encoder that fuses vision, proprioception, and force/torque into one representation by training each sense to predict the others.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+  <nav>
+    <div class="container">
+      <a href="/" class="nav-name"><img src="/images/pp.jpg" alt="Linus Seah" class="nav-photo">Linus Seah</a>
+      <ul class="nav-links">
+        <li><a href="/about/">About</a></li>
+        <li><a href="/projects/">Projects</a></li>
+        <li><a href="/blog/" class="active">Articles</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main class="container">
+
+    <div class="post-header">
+      <div class="series">Menlo Research</div>
+      <h1>Kepler v0.1: World Encoder for Robotic Perception</h1>
+      <p class="post-subtitle">How a robot can learn one representation for everything it senses</p>
+      <div class="post-meta">
+        By <a href="https://www.linkedin.com/in/linusseah/" target="_blank">Linus Seah</a> · July 2026 · Written for Menlo Research
+      </div>
+      <p>
+        <span class="tag">Robotics</span>
+        <span class="tag">Multimodal Learning</span>
+        <span class="tag">Representation Learning</span>
+        <span class="tag">JEPA</span>
+        <span class="tag">Menlo Research</span>
+      </p>
+    </div>
+
+    <article class="prose">
+
+      <p>I wrote this piece for <a href="https://menlo.ai/" target="_blank">Menlo Research</a>, translating the Kepler v0.1 paper by Ishneet Sukhvinder Singh, Dhanoosh Pooranakumaran, Alex Nguyen, and Jia Qi Yip into a version a general audience can follow. The full article is on <a href="https://menlo.ai/research/kepler-v01" target="_blank">Menlo's research blog</a>. This is the short version and why I think it matters. The research is the authors'; the framing here is mine.</p>
+
+      <h3>What it covers</h3>
+
+      <p>Most robots treat the camera as the primary sense and everything else, joint angles, force, torque, as a secondary signal. That choice discards the information a camera cannot see: contact, slip, and weight. Kepler is a multimodal encoder that fuses vision, proprioception, and force/torque into a single 256-dimension representation.</p>
+
+      <p>The training idea is what makes it work. Each sense is trained to predict the others. One modality is hidden, the rest are fused, and the encoder has to reconstruct the missing one, a Joint Embedding Predictive Architecture objective. To do that well, the senses have to share a common latent space rather than sit in separate silos.</p>
+
+      <p>Two results stood out. A single encoder trained this way transfers across robot bodies: it matches robot-specific models on their own hardware and beats them on robots it has never seen. And because the model predicts each sense from the others, a large prediction error is a reliable sign that the robot is in an invalid state, so anomaly detection comes for free with no extra training.</p>
+
+      <h3>Why it matters</h3>
+
+      <p>The pattern generalises past robotics. When several noisy sources describe the same situation, training them to predict each other tends to use the signal better than naming one source primary and attaching the rest. The prediction error doubling as a health check is a property worth designing for on purpose, not treating as a side effect.</p>
+
+      <div class="insight-box">
+        <div class="label">Full article</div>
+        <p style="margin:0;">Read the complete piece on <a href="https://menlo.ai/research/kepler-v01" target="_blank">Menlo Research's research blog</a>.</p>
+      </div>
+
+    </article>
+
+    <div class="post-footer">
+      <p><strong>About the author:</strong> I'm Linus, a Singaporean Product Manager currently based in San Francisco. I write about AI systems and what they actually mean for people building with them. The views in this piece are my own.</p>
+      <p>
+        Email: <a href="mailto:seah.linus@gmail.com">seah.linus@gmail.com</a><br>
+        GitHub: <a href="https://github.com/linusseah" target="_blank">linusseah</a>
+      </p>
+      <div style="margin-top: 16px; display: flex; gap: 20px; align-items: center;">
+        <a href="mailto:seah.linus@gmail.com" title="Email" style="color: var(--text-light); text-decoration: none;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="4" width="20" height="16" rx="2"/>
+            <path d="M2 7l10 7 10-7"/>
+          </svg>
+        </a>
+        <a href="https://www.linkedin.com/in/linusseah/" target="_blank" title="LinkedIn" style="color: var(--text-light); text-decoration: none;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="2" width="20" height="20" rx="3"/>
+            <path d="M7 10v7M7 7v.01M12 17v-4a2 2 0 0 1 4 0v4M12 10v7"/>
+          </svg>
+        </a>
+        <a href="https://github.com/linusseah" target="_blank" title="GitHub" style="color: var(--text-light); text-decoration: none;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/>
+          </svg>
+        </a>
+      </div>
+      <p style="font-size:12px; color: var(--text-muted); margin-top:24px;">
+        <em>Reference:</em><br>
+        · <a href="https://menlo.ai/research/kepler-v01" target="_blank">Kepler v0.1: World Encoder for Robotic Perception, by Singh, Pooranakumaran, Nguyen and Yip (Menlo Research, 2026)</a>
+      </p>
+    </div>
+
+  </main>
+
+  <footer>
+    <div class="container">
+      <p><a href="https://github.com/linusseah" target="_blank">GitHub</a> · <a href="https://www.linkedin.com/in/linusseah/" target="_blank">LinkedIn</a> · <a href="mailto:seah.linus@gmail.com">Email</a></p>
+    </div>
+  </footer>
+
+  <script src="/js/toc.js" defer></script>
+</body>
+</html>

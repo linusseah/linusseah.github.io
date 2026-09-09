@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>From Walking to Flipping — Linus Seah</title>
+  <meta name="description" content="Written for Menlo Research: how a dual-arm humanoid learns to flip cartons on a moving conveyor with teacher-student reinforcement learning.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+  <nav>
+    <div class="container">
+      <a href="/" class="nav-name"><img src="/images/pp.jpg" alt="Linus Seah" class="nav-photo">Linus Seah</a>
+      <ul class="nav-links">
+        <li><a href="/about/">About</a></li>
+        <li><a href="/projects/">Projects</a></li>
+        <li><a href="/blog/" class="active">Articles</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main class="container">
+
+    <div class="post-header">
+      <div class="series">Menlo Research</div>
+      <h1>From Walking to Flipping</h1>
+      <p class="post-subtitle">Teaching a humanoid a manipulation task with reinforcement learning</p>
+      <div class="post-meta">
+        By <a href="https://www.linkedin.com/in/linusseah/" target="_blank">Linus Seah</a> · August 2026 · Written for Menlo Research
+      </div>
+      <p>
+        <span class="tag">Reinforcement Learning</span>
+        <span class="tag">Robotics</span>
+        <span class="tag">Manipulation</span>
+        <span class="tag">Sim-to-Real</span>
+        <span class="tag">Menlo Research</span>
+      </p>
+    </div>
+
+    <article class="prose">
+
+      <p>I wrote this piece for <a href="https://menlo.ai/" target="_blank">Menlo Research</a>, translating Ariel Tseng and the Menlo Research team's work on training a humanoid to flip cartons into a version a general audience can follow. The full article is on <a href="https://menlo.ai/research/from-walking-to-flipping" target="_blank">Menlo's research blog</a>. Short version and takeaways below. The research is the team's; the framing here is mine.</p>
+
+      <h3>What it covers</h3>
+
+      <p>The task: Asimov, a dual-arm humanoid, flipping cartons on a moving conveyor. Each carton has to rotate 90 degrees from standing on its edge to lying on its face while the belt keeps moving.</p>
+
+      <p>Training a vision policy end to end with reinforcement learning is slow, because you have to render camera images inside the training loop. The team split the problem in two. A teacher policy learns with PPO in simulation, with privileged access to exact object poses and contact states, information a real robot would never have. A student policy then learns by imitation, using DAgger, to copy the teacher's actions from RGB-D camera input and joint sensors. Only the student is meant to reach hardware.</p>
+
+      <p>A few choices make it practical. 16,384 simulated robots train in parallel on one GPU. A single teleoperated demonstration shapes exploration through an Adversarial Motion Prior. Rewards are staged milestones rather than dense shaping, which keeps the policy from gaming them. The result is a two-arm pinch-and-rotate strategy that completes the flip in simulation. Sim-to-real is the next step.</p>
+
+      <h3>Why it matters</h3>
+
+      <p>Teacher-student distillation is a recurring move in applied reinforcement learning: let the teacher use information that only exists in simulation, then force the student to solve the same task with only what a real robot can sense. The milestone reward is a concrete answer to reward hacking, and it is easier to reason about than a hand-tuned dense reward.</p>
+
+      <div class="insight-box">
+        <div class="label">Full article</div>
+        <p style="margin:0;">Read the complete piece on <a href="https://menlo.ai/research/from-walking-to-flipping" target="_blank">Menlo Research's research blog</a>.</p>
+      </div>
+
+    </article>
+
+    <div class="post-footer">
+      <p><strong>About the author:</strong> I'm Linus, a Singaporean Product Manager currently based in San Francisco. I write about AI systems and what they actually mean for people building with them. The views in this piece are my own.</p>
+      <p>
+        Email: <a href="mailto:seah.linus@gmail.com">seah.linus@gmail.com</a><br>
+        GitHub: <a href="https://github.com/linusseah" target="_blank">linusseah</a>
+      </p>
+      <div style="margin-top: 16px; display: flex; gap: 20px; align-items: center;">
+        <a href="mailto:seah.linus@gmail.com" title="Email" style="color: var(--text-light); text-decoration: none;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="4" width="20" height="16" rx="2"/>
+            <path d="M2 7l10 7 10-7"/>
+          </svg>
+        </a>
+        <a href="https://www.linkedin.com/in/linusseah/" target="_blank" title="LinkedIn" style="color: var(--text-light); text-decoration: none;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="2" width="20" height="20" rx="3"/>
+            <path d="M7 10v7M7 7v.01M12 17v-4a2 2 0 0 1 4 0v4M12 10v7"/>
+          </svg>
+        </a>
+        <a href="https://github.com/linusseah" target="_blank" title="GitHub" style="color: var(--text-light); text-decoration: none;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/>
+          </svg>
+        </a>
+      </div>
+      <p style="font-size:12px; color: var(--text-muted); margin-top:24px;">
+        <em>Reference:</em><br>
+        · <a href="https://menlo.ai/research/from-walking-to-flipping" target="_blank">From Walking to Flipping (Menlo Research, 2026)</a>
+      </p>
+    </div>
+
+  </main>
+
+  <footer>
+    <div class="container">
+      <p><a href="https://github.com/linusseah" target="_blank">GitHub</a> · <a href="https://www.linkedin.com/in/linusseah/" target="_blank">LinkedIn</a> · <a href="mailto:seah.linus@gmail.com">Email</a></p>
+    </div>
+  </footer>
+
+  <script src="/js/toc.js" defer></script>
+</body>
+</html>
